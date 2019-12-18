@@ -32,7 +32,6 @@ pub use balances::Call as BalancesCall;
 pub use sr_primitives::BuildStorage;
 pub use sr_primitives::{Perbill, Permill};
 pub use support::{construct_runtime, parameter_types, traits::Randomness, StorageValue};
-pub use timestamp::Call as TimestampCall;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -179,12 +178,6 @@ parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
 
-impl timestamp::Trait for Runtime {
-    /// A timestamp: milliseconds since the unix epoch.
-    type Moment = u64;
-    type OnTimestampSet = Aura;
-    type MinimumPeriod = MinimumPeriod;
-}
 
 parameter_types! {
     pub const ExistentialDeposit: u128 = 500;
@@ -234,7 +227,6 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: system::{Module, Call, Storage, Config, Event},
-		Timestamp: timestamp::{Module, Call, Storage, Inherent},
 		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
