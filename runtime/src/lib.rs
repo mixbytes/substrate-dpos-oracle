@@ -8,7 +8,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use aura_primitives::sr25519::AuthorityId as AuraId;
 use grandpa::fg_primitives;
 use grandpa::AuthorityList as GrandpaAuthorityList;
 use primitives::OpaqueMetadata;
@@ -28,6 +27,7 @@ use version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use balances::Call as BalancesCall;
+pub use assets::Call as AssetsCall;
 #[cfg(any(feature = "std", test))]
 pub use sr_primitives::BuildStorage;
 pub use sr_primitives::{Perbill, Permill};
@@ -79,7 +79,6 @@ pub mod opaque {
 
     impl_opaque_keys! {
         pub struct SessionKeys {
-            pub aura: Aura,
             pub grandpa: Grandpa,
         }
     }
@@ -154,9 +153,6 @@ impl system::Trait for Runtime {
     type Version = Version;
 }
 
-impl aura::Trait for Runtime {
-    type AuthorityId = AuraId;
-}
 
 impl grandpa::Trait for Runtime {
     type Event = Event;
@@ -216,8 +212,16 @@ impl sudo::Trait for Runtime {
     type Proposal = Call;
 }
 
+impl assets::Trait for Runtime {
+    type Event = Event;
+    type Balance = u128;
+    type AssetId = u64;
+}
+
 impl tablescore::Trait for Runtime {
     type Event = Event;
+    type TargetType = u64;
+    type TableId = u64;
 }
 
 construct_runtime!(
@@ -227,13 +231,13 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: system::{Module, Call, Storage, Config, Event},
-		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
-		Tablescore: tablescore,
+                Assets: assets::{Module, Call, Storage, Event<T>},
+		Tablescore: tablescore::{Module, Call, Storage, Event<T>},
 		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
 	}
 );
@@ -323,15 +327,6 @@ impl_runtime_apis! {
         }
     }
 
-    impl aura_primitives::AuraApi<Block, AuraId> for Runtime {
-        fn slot_duration() -> u64 {
-            Aura::slot_duration()
-        }
-
-        fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
-        }
-    }
 
     impl substrate_session::SessionKeys<Block> for Runtime {
         fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
