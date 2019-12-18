@@ -1,0 +1,133 @@
+[package]
+name = "substrate-tablescore-node"
+version = "0.1.0"
+authors = ["sadsnake sadsnake@mixbytes.io"]
+build = "build.rs"
+edition = "2018"
+
+[workspace]
+members = ["runtime", ]
+
+[[bin]]
+name = "tablescore-module-node"
+path = "src/main.rs"
+
+[dependencies]
+derive_more = "0.15.0"
+futures = "0.1.29"
+ctrlc = { version = "3.1.3", features = ["termination"] }
+log = "0.4.8"
+simplelog = "0.7.4"
+tokio = "0.1.22"
+exit-future = "0.1.4"
+parking_lot = "0.9.0"
+codec = { package = "parity-scale-codec", version = "1.0.0" }
+trie-root = "0.15.2"
+
+[dependencies.sr-io]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.substrate-cli]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.primitives]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-primitives"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.substrate-executor]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.substrate-service]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.inherents]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-inherents"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.transaction-pool]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-transaction-pool"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.network]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-network"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.aura]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-consensus-aura"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.aura-primitives]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-consensus-aura-primitives"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.grandpa]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-finality-grandpa"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.grandpa-primitives]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-finality-grandpa-primitives"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.substrate-client]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-client"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.sr-primitives]
+git = "https://github.com/paritytech/substrate"
+package = "sr-primitives"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.basic-authorship]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-basic-authorship"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.contracts]
+git = "https://github.com/paritytech/substrate"
+package = "pallet-contracts"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
+[dependencies.tablescore-module-runtime]
+path = "runtime"
+
+[dev-dependencies.substrate-api-client]
+git = "https://github.com/scs/substrate-api-client"
+rev = "5a825ff965bbae4ac0967ac23ede25c50ce66487"
+
+[dev-dependencies.keyring]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "substrate-keyring"
+
+[dev-dependencies.system]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "palette-system"
+default-features=false
+
+[dev-dependencies.codec]
+package = "parity-scale-codec"
+features = ["derive"]
+version = "1.0.0"
+default-features = false
+
+[build-dependencies]
+vergen = "3.0.4"
+
+[build-dependencies.build-script-utils]
+git = "https://github.com/paritytech/substrate"
+package = "substrate-build-script-utils"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
