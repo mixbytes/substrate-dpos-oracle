@@ -10,6 +10,12 @@ git = "https://github.com/paritytech/substrate"
 package = "pallet-aura"
 rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 
+[dependencies.timestamp]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+package = "pallet-timestamp"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+
 [dependencies.aura-primitives]
 default-features = false
 git = "https://github.com/paritytech/substrate"
@@ -184,6 +190,7 @@ std = [
 	"sudo/std",
 	"support/std",
 	"system/std",
+	"timestamp/std",
 	"assets/std",
 	"transaction-payment/std",
 	"tx-pool-api/std",
