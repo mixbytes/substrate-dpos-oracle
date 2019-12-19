@@ -8,6 +8,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use aura_primitives::sr25519::AuthorityId as AuraId;
 use grandpa::fg_primitives;
 use grandpa::AuthorityList as GrandpaAuthorityList;
 use primitives::OpaqueMetadata;
@@ -26,8 +27,8 @@ use version::NativeVersion;
 use version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-pub use balances::Call as BalancesCall;
 pub use assets::Call as AssetsCall;
+pub use balances::Call as BalancesCall;
 #[cfg(any(feature = "std", test))]
 pub use sr_primitives::BuildStorage;
 pub use sr_primitives::{Perbill, Permill};
@@ -65,7 +66,8 @@ pub mod tablescore;
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core datastructures.
-pub mod opaque {
+pub mod opaque
+{
     use super::*;
 
     pub use sr_primitives::OpaqueExtrinsic as UncheckedExtrinsic;
@@ -79,6 +81,7 @@ pub mod opaque {
 
     impl_opaque_keys! {
         pub struct SessionKeys {
+            pub aura: Aura,
             pub grandpa: Grandpa,
         }
     }
@@ -105,7 +108,8 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 /// The version infromation used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
+pub fn native_version() -> NativeVersion
+{
     NativeVersion {
         runtime_version: VERSION,
         can_author_with: Default::default(),
@@ -120,7 +124,8 @@ parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
 }
 
-impl system::Trait for Runtime {
+impl system::Trait for Runtime
+{
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
     /// The aggregated dispatch type that is available for extrinsics.
@@ -153,12 +158,17 @@ impl system::Trait for Runtime {
     type Version = Version;
 }
 
+impl aura::Trait for Runtime {
+    type AuthorityId = AuraId;
+}
 
-impl grandpa::Trait for Runtime {
+impl grandpa::Trait for Runtime
+{
     type Event = Event;
 }
 
-impl indices::Trait for Runtime {
+impl indices::Trait for Runtime
+{
     /// The type for recording indexing into the account enumeration. If this ever overflows, there
     /// will be problems!
     type AccountIndex = AccountIndex;
@@ -174,14 +184,14 @@ parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
 
-
 parameter_types! {
     pub const ExistentialDeposit: u128 = 500;
     pub const TransferFee: u128 = 0;
     pub const CreationFee: u128 = 0;
 }
 
-impl balances::Trait for Runtime {
+impl balances::Trait for Runtime
+{
     type Balance = Balance;
     type OnFreeBalanceZero = ();
     type OnNewAccount = Indices;
@@ -198,7 +208,8 @@ parameter_types! {
     pub const TransactionByteFee: Balance = 1;
 }
 
-impl transaction_payment::Trait for Runtime {
+impl transaction_payment::Trait for Runtime
+{
     type Currency = balances::Module<Runtime>;
     type OnTransactionPayment = ();
     type TransactionBaseFee = TransactionBaseFee;
@@ -207,18 +218,21 @@ impl transaction_payment::Trait for Runtime {
     type FeeMultiplierUpdate = ();
 }
 
-impl sudo::Trait for Runtime {
+impl sudo::Trait for Runtime
+{
     type Event = Event;
     type Proposal = Call;
 }
 
-impl assets::Trait for Runtime {
+impl assets::Trait for Runtime
+{
     type Event = Event;
     type Balance = u128;
     type AssetId = u64;
 }
 
-impl tablescore::Trait for Runtime {
+impl tablescore::Trait for Runtime
+{
     type Event = Event;
     type TargetType = u64;
     type TableId = u64;
@@ -231,6 +245,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: system::{Module, Call, Storage, Config, Event},
+		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Indices: indices::{default, Config<T>},
 		Balances: balances::{default, Error},
@@ -327,6 +342,15 @@ impl_runtime_apis! {
         }
     }
 
+    impl aura_primitives::AuraApi<Block, AuraId> for Runtime {
+        fn slot_duration() -> u64 {
+            Aura::slot_duration()
+        }
+
+        fn authorities() -> Vec<AuraId> {
+            Aura::authorities()
+        }
+    }
 
     impl substrate_session::SessionKeys<Block> for Runtime {
         fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {

@@ -1,20 +1,12 @@
 use aura_primitives::sr25519::AuthorityId as AuraId;
 use grandpa_primitives::AuthorityId as GrandpaId;
-use tablescore_module_runtime::{
-    AccountId,
-    AuraConfig,
-    BalancesConfig,
-    GenesisConfig,
-    GrandpaConfig,
-    IndicesConfig,
-    Signature,
-    SudoConfig,
-    SystemConfig,
-    WASM_BINARY,
-};
 use primitives::{sr25519, Pair, Public};
 use sr_primitives::traits::{IdentifyAccount, Verify};
 use substrate_service;
+use tablescore_module_runtime::{
+    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig, Signature,
+    SudoConfig, SystemConfig, WASM_BINARY,
+};
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -26,7 +18,8 @@ pub type ChainSpec = substrate_service::ChainSpec<GenesisConfig>;
 /// is little more than one of a number of alternatives which can easily be converted
 /// from a string (`--chain=...`) into a `ChainSpec`.
 #[derive(Clone, Debug)]
-pub enum Alternative {
+pub enum Alternative
+{
     /// Whatever the current runtime is, with just Alice as an auth.
     Development,
     /// Whatever the current runtime is, with simple Alice/Bob auths.
@@ -34,7 +27,8 @@ pub enum Alternative {
 }
 
 /// Helper function to generate a crypto pair from seed
-pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public
+{
     TPublic::Pair::from_string(&format!("//{}", seed), None)
         .expect("static values are valid; qed")
         .public()
@@ -51,14 +45,18 @@ where
 }
 
 /// Helper function to generate an authority key for Aura
-pub fn get_authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
+pub fn get_authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId)
+{
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-impl Alternative {
+impl Alternative
+{
     /// Get an actual chain config from one of the alternatives.
-    pub(crate) fn load(self) -> Result<ChainSpec, String> {
-        Ok(match self {
+    pub(crate) fn load(self) -> Result<ChainSpec, String>
+    {
+        Ok(match self
+        {
             Alternative::Development => ChainSpec::from_genesis(
                 "Development",
                 "dev",
@@ -117,8 +115,10 @@ impl Alternative {
         })
     }
 
-    pub(crate) fn from(s: &str) -> Option<Self> {
-        match s {
+    pub(crate) fn from(s: &str) -> Option<Self>
+    {
+        match s
+        {
             "dev" => Some(Alternative::Development),
             "" | "local" => Some(Alternative::LocalTestnet),
             _ => None,
@@ -131,7 +131,8 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
-) -> GenesisConfig {
+) -> GenesisConfig
+{
     GenesisConfig {
         system: Some(SystemConfig {
             code: WASM_BINARY.to_vec(),
@@ -156,7 +157,7 @@ fn testnet_genesis(
             authorities: initial_authorities
                 .iter()
                 .map(|x| (x.1.clone(), 1))
-                .collect()
+                .collect(),
         }),
     }
 }

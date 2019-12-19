@@ -10,7 +10,7 @@ use sr_primitives::traits::{
     //One,
     SimpleArithmetic,
 };
-//use system::ensure_signed;
+use system::ensure_signed;
 
 pub trait Trait: assets::Trait
 {
@@ -72,12 +72,10 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
 
-        //pub fn vote(origin, table_id: T::TableId, count: Balance<T>)
-        //{
-        //    let who = ensure_signed(origin)?;
-
-        //    <Balance<T>>::get(&origin);
-        //}
+        pub fn vote(origin, table_id: T::TableId, count: Balance<T>)
+        {
+            let who = ensure_signed(origin)?;
+        }
     }
 }
 
