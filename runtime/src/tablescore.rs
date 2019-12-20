@@ -5,13 +5,11 @@ use support::{decl_event, decl_module, decl_storage, dispatch::Result, Parameter
 use codec::{Decode, Encode};
 use core::cmp::{Ord, Ordering, PartialOrd};
 use rstd::prelude::*;
-use sr_primitives::traits::{
-    //CheckedAdd,
-    Member,
-    //One,
-    SimpleArithmetic,
-};
+use rstd::result;
+use sr_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic, Zero};
+
 use system::ensure_signed;
+
 pub trait Trait: assets::Trait
 {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -23,6 +21,8 @@ pub trait Trait: assets::Trait
 type Balance<T> = <T as assets::Trait>::Balance;
 type AssetId<T> = <T as assets::Trait>::AssetId;
 type AccountId<T> = <T as system::Trait>::AccountId;
+
+const DEFAULT_HEAD_COUNT: u8 = 5;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -36,7 +36,11 @@ impl<T: Trait> Ord for Record<T>
 {
     fn cmp(&self, other: &Self) -> Ordering
     {
-        self.balance.cmp(&other.balance)
+        match self.balance.cmp(&other.balance)
+        {
+            Ordering::Equal => self.target.cmp(&other.target),
+            any => any,
+        }
     }
 }
 
@@ -63,9 +67,11 @@ impl<T: Trait> Default for Record<T>
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Table<T: Trait>
 {
+    name: Option<Vec<u8>>,
+    head_count: u8,
     vote_asset: AssetId<T>,
     scores: BTreeSet<Record<T>>,
-    reserved: BTreeMap<AccountId<T>, Balance<T>>,
+    reserved: BTreeMap<AccountId<T>, Record<T>>,
 }
 
 impl<T: Trait> Default for Table<T>
@@ -73,6 +79,8 @@ impl<T: Trait> Default for Table<T>
     fn default() -> Self
     {
         Table {
+            name: None,
+            head_count: DEFAULT_HEAD_COUNT,
             vote_asset: AssetId::<T>::default(),
             scores: BTreeSet::new(),
             reserved: BTreeMap::new(),
@@ -91,12 +99,33 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
 
-        pub fn vote(origin, table_id: T::TableId, count: Balance<T>, target: T::TargetType) -> Result
+        //pub fn create_table(origin, vote_asset: &AssetId<T>, name: Option<Vec<u8>>) -> Result
+        //{
+        //    unimplemented!()
+        //}
+
+        pub fn vote(origin, table_id: T::TableId, balance: Balance<T>, target: T::TargetType) -> Result
         {
             let voter = ensure_signed(origin)?;
+            let table = Scores::<T>::get(&table_id);
 
-            Self::rereserve(&voter, &table_id, count)?;
-            unimplemented!()
+            let new_record = Record { target, balance };
+            let old_record = table.reserved.get(&voter);
+
+            Self::rereserve(&voter, &table.vote_asset, old_record, &new_record)?;
+
+            Scores::<T>::mutate(&table_id, |table| {
+                table.reserved.remove(&voter);
+                if let Some(record) = old_record { table.scores.remove(record); }
+
+                if new_record.balance != Zero::zero()
+                {
+                    table.reserved.insert(voter.clone(), new_record.clone());
+                    table.scores.insert(new_record);
+                }
+            });
+
+            Ok(())
         }
     }
 }
@@ -110,39 +139,74 @@ decl_event!(
     }
 );
 
-impl<T: Trait> Module<T> 
+impl<T: Trait> Module<T>
 {
-    fn rereserve(voter: &AccountId<T>, table_id: &T::TableId, count: Balance<T>) -> Result
+    fn pop_new_table_id() -> result::Result<T::TableId, &'static str>
     {
-            let mut result: Result = Ok(());
-            Scores::<T>::mutate(table_id, |table| {
-                match table.reserved.get(voter)
-                {
-                    Some(reserved) =>
-                    {
-                        match reserved.cmp(&count)
-                        {
-                            Ordering::Greater =>
-                            {
-                                assets::Module::<T>::unreserve(&table.vote_asset, voter, *reserved - count);
-                            }
-                            Ordering::Less =>
-                            {
-                                result = assets::Module::<T>::reserve(&table.vote_asset, voter, count - *reserved);
-                            }
-                            _ => {}
-                        }
-                    }
-                    None =>
-                    {
-                        result = assets::Module::<T>::reserve(&table.vote_asset, voter, count);
-                    }
-                }
+        let mut result = Err("Unknown error");
 
-                //table.reserved.replace(voter, count); ToDo Don't work
-                table.reserved.remove(voter);
-                table.reserved.insert(voter.clone(), count);
-            });
-            result
+        TableScoreIdSequence::<T>::mutate(|id| match id.checked_add(&One::one())
+        {
+            Some(res) =>
+            {
+                *id = res;
+                result = Ok(id.clone());
+            }
+            None =>
+            {
+                result = Err("T::TableId overflow. Can't get next id.");
+            }
+        });
+
+        result
+    }
+
+    fn rereserve(
+        voter: &AccountId<T>,
+        asset_id: &AssetId<T>,
+        old_record: Option<&Record<T>>,
+        new_record: &Record<T>,
+    ) -> Result
+    {
+        match old_record
+        {
+            Some(record) => match record.balance.cmp(&new_record.balance)
+            {
+                Ordering::Greater =>
+                {
+                    assets::Module::<T>::unreserve(
+                        asset_id,
+                        voter,
+                        record.balance - new_record.balance,
+                    );
+                }
+                Ordering::Less =>
+                {
+                    assets::Module::<T>::reserve(
+                        asset_id,
+                        voter,
+                        new_record.balance - record.balance,
+                    )?;
+                }
+                _ =>
+                {}
+            },
+            None =>
+            {
+                assets::Module::<T>::reserve(asset_id, voter, new_record.balance)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn get_head(table_id: &T::TableId) -> Vec<T::TargetType>
+    {
+        let table = Scores::<T>::get(table_id);
+        table
+            .scores
+            .iter()
+            .map(|record| record.target.clone())
+            .take(table.head_count as usize)
+            .collect()
     }
 }
