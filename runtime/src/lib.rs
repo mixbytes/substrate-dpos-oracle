@@ -28,12 +28,12 @@ use version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use assets::Call as AssetsCall;
-pub use timestamp::Call as TimestampCall;
 pub use balances::Call as BalancesCall;
 #[cfg(any(feature = "std", test))]
 pub use sr_primitives::BuildStorage;
 pub use sr_primitives::{Perbill, Permill};
 pub use support::{construct_runtime, parameter_types, traits::Randomness, StorageValue};
+pub use timestamp::Call as TimestampCall;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -159,14 +159,16 @@ impl system::Trait for Runtime
     type Version = Version;
 }
 
-impl timestamp::Trait for Runtime {
+impl timestamp::Trait for Runtime
+{
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
     type OnTimestampSet = Aura;
     type MinimumPeriod = MinimumPeriod;
 }
 
-impl aura::Trait for Runtime {
+impl aura::Trait for Runtime
+{
     type AuthorityId = AuraId;
 }
 

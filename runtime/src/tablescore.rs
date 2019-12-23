@@ -99,10 +99,21 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
 
-        //pub fn create_table(origin, vote_asset: &AssetId<T>, name: Option<Vec<u8>>) -> Result
-        //{
-        //    unimplemented!()
-        //}
+        pub fn create_table(origin, vote_asset: AssetId<T>, head_count: u8, name: Option<Vec<u8>>) -> Result
+        {
+            let _ = ensure_signed(origin)?;
+
+            Scores::<T>::insert(Self::pop_new_table_id()?,
+                Table {
+                    name: name,
+                    head_count: head_count,
+                    vote_asset: vote_asset,
+                    scores: BTreeSet::new(),
+                    reserved: BTreeMap::new(),
+                });
+
+            Ok(())
+        }
 
         pub fn vote(origin, table_id: T::TableId, balance: Balance<T>, target: T::TargetType) -> Result
         {
