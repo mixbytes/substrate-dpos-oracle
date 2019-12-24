@@ -249,23 +249,23 @@ impl tablescore::Trait for Runtime
 }
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = opaque::Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: system::{Module, Call, Storage, Config, Event},
-		Timestamp: timestamp::{Module, Call, Storage, Inherent},
-		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
-		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
-		Indices: indices::{default, Config<T>},
-		Balances: balances::{default, Error},
-		TransactionPayment: transaction_payment::{Module, Storage},
-		Sudo: sudo,
-                Assets: assets::{Module, Call, Storage, Event<T>},
-		Tablescore: tablescore::{Module, Call, Storage, Event<T>},
-		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
-	}
+        pub enum Runtime where
+                Block = Block,
+                NodeBlock = opaque::Block,
+                UncheckedExtrinsic = UncheckedExtrinsic
+    {
+            System: system::{Module, Call, Storage, Config, Event},
+            Timestamp: timestamp::{Module, Call, Storage, Inherent},
+            Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
+            Grandpa: grandpa::{Module, Call, Storage, Config, Event},
+            Indices: indices::{default, Config<T>},
+            Balances: balances::{default, Error},
+            TransactionPayment: transaction_payment::{Module, Storage},
+            Sudo: sudo,
+            Assets: assets::{Module, Call, Storage, Event<T>},
+            Tablescore: tablescore::{Module, Call, Storage, Event<T>},
+            RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
+    }
 );
 
 /// The address format for describing accounts.

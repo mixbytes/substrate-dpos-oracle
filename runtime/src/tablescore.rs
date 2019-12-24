@@ -67,11 +67,11 @@ impl<T: Trait> Default for Record<T>
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct Table<T: Trait>
 {
-    name: Option<Vec<u8>>,
-    head_count: u8,
-    vote_asset: AssetId<T>,
-    scores: BTreeSet<Record<T>>,
-    reserved: BTreeMap<AccountId<T>, Record<T>>,
+    pub name: Option<Vec<u8>>,
+    pub head_count: u8,
+    pub vote_asset: AssetId<T>,
+    pub scores: BTreeSet<Record<T>>,
+    pub reserved: BTreeMap<AccountId<T>, Record<T>>,
 }
 
 impl<T: Trait> Default for Table<T>
@@ -168,8 +168,8 @@ impl<T: Trait> Module<T>
         {
             Some(res) =>
             {
-                *id = res;
                 result = Ok(id.clone());
+                *id = res;
             }
             None =>
             {

@@ -1,14 +1,13 @@
 use super::*;
 use crate::tablescore::*;
+pub use assets::Call as AssetsCall;
 use aura_primitives::sr25519::AuthorityId as AuraId;
+pub use balances::Call as BalancesCall;
 use sr_primitives::traits::{BlakeTwo256, ConvertInto};
 use sr_primitives::weights::Weight;
-use sr_primitives::{generic, traits::IdentityLookup};
-
-pub use assets::Call as AssetsCall;
-pub use balances::Call as BalancesCall;
 #[cfg(any(feature = "std", test))]
 pub use sr_primitives::BuildStorage;
+use sr_primitives::{generic, traits::IdentityLookup};
 pub use sr_primitives::{Perbill, Permill};
 pub use support::{
     construct_runtime, impl_outer_origin, parameter_types, traits::Randomness, StorageValue,
@@ -38,7 +37,7 @@ parameter_types! {
     pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Test;
 
 impl system::Trait for Test
