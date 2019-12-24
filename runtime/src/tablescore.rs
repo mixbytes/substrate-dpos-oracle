@@ -99,7 +99,11 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
 
-        pub fn create_table(origin, vote_asset: AssetId<T>, head_count: u8, name: Option<Vec<u8>>) -> Result
+        pub fn create_table(
+            origin,
+            vote_asset: AssetId<T>,
+            head_count: u8,
+            name: Option<Vec<u8>>) -> Result
         {
             let _ = ensure_signed(origin)?;
 
@@ -115,7 +119,11 @@ decl_module! {
             Ok(())
         }
 
-        pub fn vote(origin, table_id: T::TableId, balance: Balance<T>, target: T::TargetType) -> Result
+        pub fn vote(
+            origin,
+            table_id: T::TableId,
+            balance: Balance<T>,
+            target: T::TargetType) -> Result
         {
             let voter = ensure_signed(origin)?;
             let table = Scores::<T>::get(&table_id);

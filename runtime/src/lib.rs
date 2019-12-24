@@ -375,3 +375,9 @@ impl_runtime_apis! {
         }
     }
 }
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
