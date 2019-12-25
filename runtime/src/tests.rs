@@ -51,7 +51,7 @@ fn vote_reserve_err()
         )
         .is_ok());
 
-        assert!(MockModule::vote(Origin::signed(ALICE), &id, BALANCE + 1, 1).is_err());
+        assert!(MockModule::vote(Origin::signed(ALICE), id, BALANCE + 1, 1).is_err());
     });
 }
 
@@ -69,13 +69,13 @@ fn vote()
         )
         .is_ok());
 
-        assert!(MockModule::vote(Origin::signed(ALICE), &id, 3u128, 1).is_ok());
-        assert!(MockModule::vote(Origin::signed(BOB), &id, 2u128, 2).is_ok());
-        assert!(MockModule::vote(Origin::signed(CAROL), &id, 1u128, 3).is_ok());
+        assert!(MockModule::vote(Origin::signed(ALICE), id, 3u128, 1).is_ok());
+        assert!(MockModule::vote(Origin::signed(BOB), id, 2u128, 2).is_ok());
+        assert!(MockModule::vote(Origin::signed(CAROL), id, 1u128, 3).is_ok());
 
         assert_eq!(MockModule::get_head(&id), vec![1, 2]);
 
-        assert!(MockModule::vote(Origin::signed(CAROL), &id, 4u128, 3).is_ok());
+        assert!(MockModule::vote(Origin::signed(CAROL), id, 4u128, 3).is_ok());
 
         assert_eq!(MockModule::get_head(&id), vec![3, 1]);
     });

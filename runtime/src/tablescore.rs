@@ -122,19 +122,19 @@ decl_module! {
 
         pub fn vote(
             origin,
-            table_id: &T::TableId,
+            table_id: T::TableId,
             balance: Balance<T>,
             target: T::TargetType) -> Result
         {
             let voter = ensure_signed(origin)?;
-            let table = Scores::<T>::get(table_id);
+            let table = Scores::<T>::get(&table_id);
 
             let new_record = Record { target, balance };
             let old_record = table.reserved.get(&voter);
 
             Self::rereserve(&voter, &table.vote_asset, old_record, &new_record)?;
 
-            Scores::<T>::mutate(table_id, |table| {
+            Scores::<T>::mutate(&table_id, |table| {
                 table.reserved.remove(&voter);
                 if let Some(record) = old_record { table.scores.remove(record); }
 
