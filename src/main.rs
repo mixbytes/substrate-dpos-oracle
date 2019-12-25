@@ -3,7 +3,6 @@
 #![warn(missing_docs)]
 #![warn(unused_extern_crates)]
 
-#[macro_use]
 extern crate log;
 
 mod chain_spec;

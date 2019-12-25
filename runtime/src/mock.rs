@@ -151,12 +151,32 @@ impl tablescore::Trait for Test
     type TableId = u64;
 }
 
-pub type TablescoreModule = Module<Test>;
+pub type MockModule = Module<Test>;
+
+pub const ASSET_ID: u64    = 123;
+pub const BALANCE: Balance = 1000;
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId   = 2;
+pub const CAROL: AccountId = 3;
+pub const CHUCK: AccountId = 4;
 
 pub fn new_test_ext() -> runtime_io::TestExternalities
 {
-    let t = system::GenesisConfig::default()
+    let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
+
+    assets::GenesisConfig::<Test> {
+        assets: vec![ASSET_ID],
+        initial_balance: BALANCE,
+        endowed_accounts: vec![ALICE, BOB, CAROL, CHUCK],
+        next_asset_id: 0,
+        spending_asset_id: ASSET_ID,
+        staking_asset_id: ASSET_ID,
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
     t.into()
 }
