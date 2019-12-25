@@ -67,8 +67,7 @@ pub mod tablescore;
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core datastructures.
-pub mod opaque
-{
+pub mod opaque {
     use super::*;
 
     pub use sr_primitives::OpaqueExtrinsic as UncheckedExtrinsic;
@@ -109,8 +108,7 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 /// The version infromation used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion
-{
+pub fn native_version() -> NativeVersion {
     NativeVersion {
         runtime_version: VERSION,
         can_author_with: Default::default(),
@@ -125,8 +123,7 @@ parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
 }
 
-impl system::Trait for Runtime
-{
+impl system::Trait for Runtime {
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
     /// The aggregated dispatch type that is available for extrinsics.
@@ -159,26 +156,22 @@ impl system::Trait for Runtime
     type Version = Version;
 }
 
-impl timestamp::Trait for Runtime
-{
+impl timestamp::Trait for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
     type OnTimestampSet = Aura;
     type MinimumPeriod = MinimumPeriod;
 }
 
-impl aura::Trait for Runtime
-{
+impl aura::Trait for Runtime {
     type AuthorityId = AuraId;
 }
 
-impl grandpa::Trait for Runtime
-{
+impl grandpa::Trait for Runtime {
     type Event = Event;
 }
 
-impl indices::Trait for Runtime
-{
+impl indices::Trait for Runtime {
     /// The type for recording indexing into the account enumeration. If this ever overflows, there
     /// will be problems!
     type AccountIndex = AccountIndex;
@@ -200,8 +193,7 @@ parameter_types! {
     pub const CreationFee: u128 = 0;
 }
 
-impl balances::Trait for Runtime
-{
+impl balances::Trait for Runtime {
     type Balance = Balance;
     type OnFreeBalanceZero = ();
     type OnNewAccount = Indices;
@@ -218,8 +210,7 @@ parameter_types! {
     pub const TransactionByteFee: Balance = 1;
 }
 
-impl transaction_payment::Trait for Runtime
-{
+impl transaction_payment::Trait for Runtime {
     type Currency = balances::Module<Runtime>;
     type OnTransactionPayment = ();
     type TransactionBaseFee = TransactionBaseFee;
@@ -228,21 +219,18 @@ impl transaction_payment::Trait for Runtime
     type FeeMultiplierUpdate = ();
 }
 
-impl sudo::Trait for Runtime
-{
+impl sudo::Trait for Runtime {
     type Event = Event;
     type Proposal = Call;
 }
 
-impl assets::Trait for Runtime
-{
+impl assets::Trait for Runtime {
     type Event = Event;
     type Balance = u128;
     type AssetId = u64;
 }
 
-impl tablescore::Trait for Runtime
-{
+impl tablescore::Trait for Runtime {
     type Event = Event;
     type TargetType = u64;
     type TableId = u64;

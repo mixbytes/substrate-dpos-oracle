@@ -5,8 +5,7 @@ use crate::mock::{
 use crate::tablescore::Table;
 use rstd::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
 
-fn get_test_table() -> Table<Test>
-{
+fn get_test_table() -> Table<Test> {
     Table::<Test> {
         name: Some("test".to_owned().as_bytes().to_vec()),
         head_count: 2,
@@ -17,8 +16,7 @@ fn get_test_table() -> Table<Test>
 }
 
 #[test]
-fn create_table()
-{
+fn create_table() {
     new_test_ext().execute_with(|| {
         let who = Origin::signed(ALICE);
         let id = MockModule::next_asset_id();
@@ -37,8 +35,7 @@ fn create_table()
 }
 
 #[test]
-fn vote_reserve_err()
-{
+fn vote_reserve_err() {
     new_test_ext().execute_with(|| {
         let id = MockModule::next_asset_id();
         let table = get_test_table();
@@ -56,8 +53,7 @@ fn vote_reserve_err()
 }
 
 #[test]
-fn vote()
-{
+fn vote() {
     new_test_ext().execute_with(|| {
         let id = MockModule::next_asset_id();
         let table = get_test_table();

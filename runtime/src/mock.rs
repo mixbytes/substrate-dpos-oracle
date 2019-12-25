@@ -40,8 +40,7 @@ parameter_types! {
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Test;
 
-impl system::Trait for Test
-{
+impl system::Trait for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Index = Index;
@@ -59,34 +58,28 @@ impl system::Trait for Test
     type Version = ();
 }
 
-impl timestamp::Trait for Test
-{
+impl timestamp::Trait for Test {
     type Moment = u64;
     type OnTimestampSet = Aura;
     type MinimumPeriod = MinimumPeriod;
 }
 
-impl aura::Trait for Test
-{
+impl aura::Trait for Test {
     type AuthorityId = AuraId;
 }
 
-impl grandpa::Trait for Test
-{
+impl grandpa::Trait for Test {
     type Event = ();
 }
 
 pub struct TestIsDeadAccount {}
-impl IsDeadAccount<u64> for TestIsDeadAccount
-{
-    fn is_dead_account(_: &u64) -> bool
-    {
+impl IsDeadAccount<u64> for TestIsDeadAccount {
+    fn is_dead_account(_: &u64) -> bool {
         false
     }
 }
 
-impl indices::Trait for Test
-{
+impl indices::Trait for Test {
     type AccountIndex = AccountIndex;
     type ResolveHint = indices::SimpleResolveHint<AccountId, AccountIndex>;
     type IsDeadAccount = TestIsDeadAccount;
@@ -103,8 +96,7 @@ parameter_types! {
     pub const CreationFee: u128 = 0;
 }
 
-impl balances::Trait for Test
-{
+impl balances::Trait for Test {
     type Balance = Balance;
     type OnFreeBalanceZero = ();
     type OnNewAccount = ();
@@ -121,8 +113,7 @@ parameter_types! {
     pub const TransactionByteFee: Balance = 1;
 }
 
-impl transaction_payment::Trait for Test
-{
+impl transaction_payment::Trait for Test {
     type Currency = balances::Module<Test>;
     type OnTransactionPayment = ();
     type TransactionBaseFee = TransactionBaseFee;
@@ -131,21 +122,18 @@ impl transaction_payment::Trait for Test
     type FeeMultiplierUpdate = ();
 }
 
-impl sudo::Trait for Test
-{
+impl sudo::Trait for Test {
     type Event = ();
     type Proposal = tablescore::Call<Test>;
 }
 
-impl assets::Trait for Test
-{
+impl assets::Trait for Test {
     type Event = ();
     type Balance = u128;
     type AssetId = u64;
 }
 
-impl tablescore::Trait for Test
-{
+impl tablescore::Trait for Test {
     type Event = ();
     type TargetType = u64;
     type TableId = u64;
@@ -153,16 +141,15 @@ impl tablescore::Trait for Test
 
 pub type MockModule = Module<Test>;
 
-pub const ASSET_ID: u64    = 123;
+pub const ASSET_ID: u64 = 123;
 pub const BALANCE: Balance = 1000;
 
 pub const ALICE: AccountId = 1;
-pub const BOB: AccountId   = 2;
+pub const BOB: AccountId = 2;
 pub const CAROL: AccountId = 3;
 pub const CHUCK: AccountId = 4;
 
-pub fn new_test_ext() -> runtime_io::TestExternalities
-{
+pub fn new_test_ext() -> runtime_io::TestExternalities {
     let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
