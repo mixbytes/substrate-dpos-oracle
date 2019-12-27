@@ -92,19 +92,10 @@ decl_module! {
             origin,
             vote_asset: AssetId<T>,
             head_count: u8,
-            name: Option<Vec<u8>>) -> Result {
-                let _ = ensure_signed(origin)?;
-
-                Scores::<T>::insert(Self::pop_new_table_id()?,
-                    Table {
-                        name: name,
-                        head_count: head_count,
-                        vote_asset: vote_asset,
-                        scores: BTreeSet::new(),
-                        reserved: BTreeMap::new(),
-                    });
-
-                Ok(())
+            name: Option<Vec<u8>>) -> Result 
+        {
+            let _ = ensure_signed(origin)?;
+            create(vote_asset, head_count, name)?;
         }
 
         pub fn vote(
@@ -143,6 +134,25 @@ decl_event!(
 );
 
 impl<T: Trait> Module<T> {
+
+    pub fn create(
+            vote_asset: AssetId<T>,
+            head_count: u8,
+            name: Option<Vec<u8>>) -> result::Result<T::TableId, &'static str>
+    {
+        let id = Self::pop_new_table_id()?;
+        Scores::<T>::insert(id.clone(),
+            Table {
+                name: name,
+                head_count: head_count,
+                vote_asset: vote_asset,
+                scores: BTreeSet::new(),
+                reserved: BTreeMap::new(),
+            });
+
+        Ok(id)
+    }
+
     fn pop_new_table_id() -> result::Result<T::TableId, &'static str> {
         let mut result = Err("Unknown error");
 
