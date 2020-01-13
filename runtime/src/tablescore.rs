@@ -95,7 +95,8 @@ decl_module! {
             name: Option<Vec<u8>>) -> Result 
         {
             let _ = ensure_signed(origin)?;
-            create(vote_asset, head_count, name)?;
+            Self::create(vote_asset, head_count, name)?;
+            Ok(())
         }
 
         pub fn vote(
@@ -133,8 +134,8 @@ decl_event!(
     }
 );
 
-impl<T: Trait> Module<T> {
-
+impl<T: Trait> Module<T> 
+{
     pub fn create(
             vote_asset: AssetId<T>,
             head_count: u8,
