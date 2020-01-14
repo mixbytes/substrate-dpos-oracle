@@ -3,10 +3,7 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use primitives::{sr25519, Pair, Public};
 use sr_primitives::traits::{IdentifyAccount, Verify};
 use substrate_service;
-use tablescore_module_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig, Signature,
-    SudoConfig, SystemConfig, WASM_BINARY,
-};
+pub use tablescore_module_runtime::*;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";

@@ -92,7 +92,7 @@ decl_module! {
             origin,
             vote_asset: AssetId<T>,
             head_count: u8,
-            name: Option<Vec<u8>>) -> Result 
+            name: Option<Vec<u8>>) -> Result
         {
             let _ = ensure_signed(origin)?;
             Self::create(vote_asset, head_count, name)?;
@@ -129,27 +129,30 @@ decl_module! {
 
 decl_event!(
     pub enum Event<T>
-    where AccountId = <T as system::Trait>::AccountId, {
+    where
+        AccountId = <T as system::Trait>::AccountId,
+    {
         Voted(AccountId),
     }
 );
 
-impl<T: Trait> Module<T> 
-{
+impl<T: Trait> Module<T> {
     pub fn create(
-            vote_asset: AssetId<T>,
-            head_count: u8,
-            name: Option<Vec<u8>>) -> result::Result<T::TableId, &'static str>
-    {
+        vote_asset: AssetId<T>,
+        head_count: u8,
+        name: Option<Vec<u8>>,
+    ) -> result::Result<T::TableId, &'static str> {
         let id = Self::pop_new_table_id()?;
-        Scores::<T>::insert(id.clone(),
+        Scores::<T>::insert(
+            id.clone(),
             Table {
                 name: name,
                 head_count: head_count,
                 vote_asset: vote_asset,
                 scores: BTreeSet::new(),
                 reserved: BTreeMap::new(),
-            });
+            },
+        );
 
         Ok(id)
     }
