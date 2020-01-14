@@ -237,6 +237,12 @@ impl tablescore::Trait for Runtime {
     type TableId = u64;
 }
 
+impl dpos_oracle::Trait for Runtime {
+    type Event = Event;
+    type OracleId = u64;
+    type ValueType = u128;
+}
+
 construct_runtime!(
         pub enum Runtime where
                 Block = Block,
@@ -253,6 +259,7 @@ construct_runtime!(
             Sudo: sudo,
             Assets: assets::{Module, Call, Storage, Event<T>},
             Tablescore: tablescore::{Module, Call, Storage, Event<T>},
+            Oracle: dpos_oracle::{Module, Call, Storage, Event<T>},
             RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
     }
 );
