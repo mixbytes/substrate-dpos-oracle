@@ -19,7 +19,7 @@ const DEFAULT_HEAD_COUNT: u8 = 5;
 pub trait Trait: assets::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
-    type TargetType: Default + Parameter + SimpleArithmetic;
+    type TargetType: Default + Parameter + Ord;
     type TableId: Parameter + Member + SimpleArithmetic + Default + Copy;
 }
 
