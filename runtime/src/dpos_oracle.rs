@@ -1,10 +1,8 @@
-use rstd::iter::Sum;
-use support::{decl_event, decl_module, decl_storage, dispatch::Result as SimpleResult, Parameter};
+use support::{decl_event, decl_module, decl_storage, dispatch::Result as SimpleResult};
 
-use codec::{Decode, Encode};
 use rstd::prelude::*;
 use rstd::result::Result;
-use sr_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic, Zero};
+use sr_primitives::traits::{CheckedAdd, One};
 use system::ensure_signed;
 
 pub use crate::oracle_data::*;
@@ -31,7 +29,7 @@ decl_module! {
             source_count: u8,
             aggregate: TimeInterval<T>,
             peace: TimeInterval<T>,
-            assets: AssetsVec<(RawString, AggregateType)>) -> SimpleResult
+            assets: AssetsVec<RawString>) -> SimpleResult
         {
             let _ = ensure_signed(origin)?;
             let table = tablescore::Module::<T>::create(asset_id, source_count, Some(name.clone()))?;

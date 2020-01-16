@@ -1,8 +1,13 @@
+extern crate alloc;
+use alloc::collections::BinaryHeap;
+
+use rstd::cmp::{Ord, Ordering};
+
 use codec::{Decode, Encode};
 use rstd::collections::btree_map::BTreeMap;
 use rstd::prelude::*;
-use sr_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic, Zero};
-use support::{decl_event, decl_module, decl_storage, dispatch::Result as SimpleResult, Parameter};
+use sr_primitives::traits::{Member, One, SimpleArithmetic};
+use support::Parameter;
 
 pub use crate::tablescore;
 
@@ -36,32 +41,41 @@ impl<T> Default for AssetsVec<T>
     }
 }
 
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
-pub enum AggregateType
-{
-    Mediana,
-    Average,
-    TimeWeightedAverage,
-}
-
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ExternalValue<T: Trait>
 {
     value: Option<T::ValueType>,
     last_changed: Option<Moment<T>>,
+}
 
-    aggregate_type: AggregateType,
+impl<T: Trait> PartialOrd for ExternalValue<T>
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering>
+    {
+        Some(self.cmp(&other))
+    }
+}
+
+impl<T: Trait> Ord for ExternalValue<T>
+{
+    fn cmp(&self, other: &Self) -> Ordering
+    {
+        match self.value.cmp(&other.value)
+        {
+            Ordering::Equal => self.last_changed.cmp(&other.last_changed),
+            ord => ord,
+        }
+    }
 }
 
 impl<T: Trait> ExternalValue<T>
 {
-    pub fn new(aggregate_type: AggregateType) -> ExternalValue<T>
+    pub fn new() -> ExternalValue<T>
     {
         ExternalValue {
             value: None,
             last_changed: None,
-            aggregate_type: aggregate_type,
         }
     }
 
@@ -71,10 +85,31 @@ impl<T: Trait> ExternalValue<T>
         self.last_changed = None;
     }
 
+    pub fn update_time(&mut self)
+    {
+        self.last_changed = Some(timestamp::Module::<T>::get());
+    }
+
     pub fn update(&mut self, value: T::ValueType)
     {
         self.value = Some(value);
-        self.last_changed = Some(timestamp::Module::<T>::get());
+        self.update_time();
+    }
+
+    fn average(&self, other: &Self) -> Self
+    {
+        ExternalValue {
+            value: match (self.value, other.value)
+            {
+                (Some(lval), Some(rval)) =>
+                {
+                    let two: T::ValueType = One::one();
+                    Some((lval + rval) / (two + One::one()))
+                }
+                _ => None,
+            },
+            last_changed: Some(timestamp::Module::<T>::get()),
+        }
     }
 }
 
@@ -85,7 +120,6 @@ impl<T: Trait> Default for ExternalValue<T>
         ExternalValue {
             value: None,
             last_changed: None,
-            aggregate_type: AggregateType::Average,
         }
     }
 }
@@ -104,20 +138,6 @@ pub struct Oracle<T: Trait>
 
     pub sources: BTreeMap<AccountId<T>, AssetsVec<ExternalValue<T>>>,
     pub value: AssetsVec<ExternalValue<T>>,
-}
-
-impl<T: Trait> Oracle<T>
-{
-    pub fn update_accounts(&mut self, accounts: Vec<AccountId<T>>)
-    {
-        let mut external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
-        external_value.0.iter_mut().for_each(|val| val.clean());
-
-        self.sources = accounts
-            .into_iter()
-            .map(|account| (account, external_value.clone()))
-            .collect()
-    }
 }
 
 impl<T: Trait> Default for Oracle<T>
@@ -143,7 +163,7 @@ impl<T: Trait> Oracle<T>
         table: TableId<T>,
         aggregate: TimeInterval<T>,
         peace: TimeInterval<T>,
-        assets: AssetsVec<(RawString, AggregateType)>,
+        assets: AssetsVec<RawString>,
     ) -> Oracle<T>
     {
         Oracle {
@@ -153,14 +173,10 @@ impl<T: Trait> Oracle<T>
             peace,
             sources: BTreeMap::new(),
             value: AssetsVec {
-                0: assets
-                    .0
-                    .iter()
-                    .map(|(_, agg_type)| ExternalValue::<T>::new(agg_type.clone()))
-                    .collect(),
+                0: assets.0.iter().map(|_| ExternalValue::<T>::new()).collect(),
             },
             assets_name: AssetsVec {
-                0: assets.0.iter().map(|(name, _)| name.clone()).collect(),
+                0: assets.0.iter().map(|name| name.clone()).collect(),
             },
         }
     }
@@ -170,14 +186,60 @@ impl<T: Trait> Oracle<T>
         self.assets_name.0.len()
     }
 
-    pub fn add_asset(&mut self, name: RawString, aggregate_type: AggregateType)
+    pub fn add_asset(&mut self, name: RawString)
     {
         self.assets_name.0.push(name);
-        self.value.0.push(ExternalValue::new(aggregate_type));
+        self.value.0.push(ExternalValue::new());
     }
 
-    pub fn calculate_value(&mut self, number: usize)
+    pub fn update_accounts(&mut self, accounts: Vec<AccountId<T>>)
     {
-        todo!()
+        let mut external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
+        external_value.0.iter_mut().for_each(|val| val.clean());
+
+        self.sources = accounts
+            .into_iter()
+            .map(|account| (account, external_value.clone()))
+            .collect()
+    }
+
+    pub fn calculate_median(&mut self, number: usize) -> Option<ExternalValue<T>>
+    {
+        let (mut min_heap, mut max_heap) = self
+            .sources
+            .iter()
+            .map(|(_, assets)| assets.0.get(number))
+            .filter(|external| external.is_some())
+            .fold(
+                (BinaryHeap::new(), BinaryHeap::new()),
+                |(mut max_heap, mut min_heap), value| {
+                    min_heap.push(Reverse(value.unwrap()));
+
+                    if let Some(val) = min_heap.pop()
+                    {
+                        max_heap.push(val.0);
+                    }
+
+                    if min_heap.len() < max_heap.len()
+                    {
+                        min_heap.push(Reverse(max_heap.pop().unwrap()));
+                    }
+                    (max_heap, min_heap)
+                },
+            );
+
+        match &mut min_heap.len().cmp(&max_heap.len())
+        {
+            Ordering::Greater => min_heap.pop().map(|val| {
+                let mut val = val.clone();
+                val.update_time();
+                val
+            }),
+            _ => match (min_heap.pop(), max_heap.pop())
+            {
+                (Some(min), Some(max)) => Some(min.average(max.0)),
+                _ => None,
+            },
+        }
     }
 }
