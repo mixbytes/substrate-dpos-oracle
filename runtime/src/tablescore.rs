@@ -16,7 +16,8 @@ type AccountId<T> = <T as system::Trait>::AccountId;
 
 const DEFAULT_HEAD_COUNT: u8 = 5;
 
-pub trait Trait: assets::Trait {
+pub trait Trait: assets::Trait
+{
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
     type TargetType: Default + Parameter + Ord;
@@ -25,14 +26,18 @@ pub trait Trait: assets::Trait {
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct Record<T: Trait> {
+pub struct Record<T: Trait>
+{
     target: T::TargetType,
     balance: Balance<T>,
 }
 
-impl<T: Trait> Ord for Record<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.balance.cmp(&other.balance) {
+impl<T: Trait> Ord for Record<T>
+{
+    fn cmp(&self, other: &Self) -> Ordering
+    {
+        match self.balance.cmp(&other.balance)
+        {
             Ordering::Equal => self.target.cmp(&other.target),
             Ordering::Greater => Ordering::Less,
             Ordering::Less => Ordering::Greater,
@@ -40,14 +45,18 @@ impl<T: Trait> Ord for Record<T> {
     }
 }
 
-impl<T: Trait> PartialOrd for Record<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl<T: Trait> PartialOrd for Record<T>
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering>
+    {
         Some(self.cmp(&other))
     }
 }
 
-impl<T: Trait> Default for Record<T> {
-    fn default() -> Self {
+impl<T: Trait> Default for Record<T>
+{
+    fn default() -> Self
+    {
         Record {
             target: T::TargetType::default(),
             balance: Balance::<T>::default(),
@@ -57,7 +66,8 @@ impl<T: Trait> Default for Record<T> {
 
 #[derive(Decode, Encode, Eq, PartialEq, Clone)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct Table<T: Trait> {
+pub struct Table<T: Trait>
+{
     pub name: Option<Vec<u8>>,
     pub head_count: u8,
     pub vote_asset: AssetId<T>,
@@ -65,8 +75,10 @@ pub struct Table<T: Trait> {
     pub reserved: BTreeMap<AccountId<T>, Record<T>>,
 }
 
-impl<T: Trait> Default for Table<T> {
-    fn default() -> Self {
+impl<T: Trait> Default for Table<T>
+{
+    fn default() -> Self
+    {
         Table {
             name: None,
             head_count: DEFAULT_HEAD_COUNT,
@@ -136,12 +148,14 @@ decl_event!(
     }
 );
 
-impl<T: Trait> Module<T> {
+impl<T: Trait> Module<T>
+{
     pub fn create(
         vote_asset: AssetId<T>,
         head_count: u8,
         name: Option<Vec<u8>>,
-    ) -> result::Result<T::TableId, &'static str> {
+    ) -> result::Result<T::TableId, &'static str>
+    {
         let id = Self::pop_new_table_id()?;
         Scores::<T>::insert(
             id.clone(),
@@ -157,15 +171,19 @@ impl<T: Trait> Module<T> {
         Ok(id)
     }
 
-    fn pop_new_table_id() -> result::Result<T::TableId, &'static str> {
+    fn pop_new_table_id() -> result::Result<T::TableId, &'static str>
+    {
         let mut result = Err("Unknown error");
 
-        TableScoreIdSequence::<T>::mutate(|id| match id.checked_add(&One::one()) {
-            Some(res) => {
+        TableScoreIdSequence::<T>::mutate(|id| match id.checked_add(&One::one())
+        {
+            Some(res) =>
+            {
                 result = Ok(id.clone());
                 *id = res;
             }
-            None => {
+            None =>
+            {
                 result = Err("T::TableId overflow. Can't get next id.");
             }
         });
@@ -178,33 +196,41 @@ impl<T: Trait> Module<T> {
         asset_id: &AssetId<T>,
         old_record: Option<&Record<T>>,
         new_record: &Record<T>,
-    ) -> Result {
-        match old_record {
-            Some(record) => match record.balance.cmp(&new_record.balance) {
-                Ordering::Greater => {
+    ) -> Result
+    {
+        match old_record
+        {
+            Some(record) => match record.balance.cmp(&new_record.balance)
+            {
+                Ordering::Greater =>
+                {
                     assets::Module::<T>::unreserve(
                         asset_id,
                         voter,
                         record.balance - new_record.balance,
                     );
                 }
-                Ordering::Less => {
+                Ordering::Less =>
+                {
                     assets::Module::<T>::reserve(
                         asset_id,
                         voter,
                         new_record.balance - record.balance,
                     )?;
                 }
-                _ => {}
+                _ =>
+                {}
             },
-            None => {
+            None =>
+            {
                 assets::Module::<T>::reserve(asset_id, voter, new_record.balance)?;
             }
         }
         Ok(())
     }
 
-    pub fn get_head(table_id: &T::TableId) -> Vec<T::TargetType> {
+    pub fn get_head(table_id: &T::TableId) -> Vec<T::TargetType>
+    {
         let table = Scores::<T>::get(table_id);
         table
             .scores
