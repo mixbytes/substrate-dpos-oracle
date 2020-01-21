@@ -77,6 +77,7 @@ decl_module! {
             number: u8,
         ) -> SimpleResult
         {
+            let _ = ensure_signed(origin)?;
             let mut result = Err("Can't find oracle.");
 
             Oracles::<T>::mutate(oracle_id, |oracle| {
