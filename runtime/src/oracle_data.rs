@@ -1,5 +1,5 @@
 extern crate alloc;
-use alloc::collections::BinaryHeap;
+use alloc::collections::{BinaryHeap, LinkedList};
 
 use rstd::cmp::{Ord, Ordering};
 
@@ -7,7 +7,7 @@ use codec::{Decode, Encode};
 use rstd::collections::btree_map::BTreeMap;
 use rstd::prelude::*;
 use sr_primitives::traits::{Member, One, SimpleArithmetic};
-use support::Parameter;
+use support::{dispatch::Result as SimpleResult, Parameter};
 
 pub use crate::tablescore;
 
@@ -90,26 +90,10 @@ impl<T: Trait> ExternalValue<T>
         self.last_changed = Some(timestamp::Module::<T>::get());
     }
 
-    pub fn update(&mut self, value: T::ValueType)
+    pub fn update(&mut self, new_value: T::ValueType)
     {
-        self.value = Some(value);
+        self.value = Some(new_value);
         self.update_time();
-    }
-
-    fn average(&self, other: &Self) -> Self
-    {
-        ExternalValue {
-            value: match (self.value, other.value)
-            {
-                (Some(lval), Some(rval)) =>
-                {
-                    let two: T::ValueType = One::one();
-                    Some((lval + rval) / (two + One::one()))
-                }
-                _ => None,
-            },
-            last_changed: Some(timestamp::Module::<T>::get()),
-        }
     }
 }
 
@@ -131,8 +115,11 @@ pub struct Oracle<T: Trait>
     pub name: RawString,
     pub table: TableId<T>,
 
+    start: Moment<T>, 
+    calculate_period: TimeInterval<T>,
     aggregate: TimeInterval<T>,
-    peace: TimeInterval<T>,
+
+    source_calculate_count: u8,
 
     pub assets_name: AssetsVec<RawString>,
 
@@ -148,7 +135,9 @@ impl<T: Trait> Default for Oracle<T>
             name: Vec::new(),
             table: TableId::<T>::default(),
             aggregate: TimeInterval::<T>::default(),
-            peace: TimeInterval::<T>::default(),
+            start: Moment::<T>::default(),
+            calculate_period: TimeInterval::<T>::default(),
+            source_calculate_count: u8::default(),
             sources: BTreeMap::default(),
             assets_name: AssetsVec::default(),
             value: AssetsVec::default(),
@@ -162,7 +151,8 @@ impl<T: Trait> Oracle<T>
         name: RawString,
         table: TableId<T>,
         aggregate: TimeInterval<T>,
-        peace: TimeInterval<T>,
+        calculate_period: TimeInterval<T>,
+        source_calculate_count: u8,
         assets: AssetsVec<RawString>,
     ) -> Oracle<T>
     {
@@ -170,7 +160,9 @@ impl<T: Trait> Oracle<T>
             name,
             table,
             aggregate,
-            peace,
+            calculate_period,
+            source_calculate_count,
+            start: timestamp::Module::<T>::get(),
             sources: BTreeMap::new(),
             value: AssetsVec {
                 0: assets.0.iter().map(|_| ExternalValue::<T>::new()).collect(),
@@ -194,52 +186,98 @@ impl<T: Trait> Oracle<T>
 
     pub fn update_accounts(&mut self, accounts: Vec<AccountId<T>>)
     {
-        let mut external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
-        external_value.0.iter_mut().for_each(|val| val.clean());
+        let mut default_external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
+        default_external_value.0.iter_mut().for_each(|val| val.clean());
 
         self.sources = accounts
             .into_iter()
-            .map(|account| (account, external_value.clone()))
+            .map(|account| {
+                let external_value = self.sources
+                    .get(&account)
+                    .unwrap_or(&default_external_value)
+                    .clone();
+                (account, external_value)
+            })
             .collect()
     }
 
-    pub fn calculate_median(&mut self, number: usize) -> Option<ExternalValue<T>>
+    pub fn get_period(&self, now: Moment::<T>) -> TimeInterval::<T>
     {
-        let (mut min_heap, mut max_heap) = self
+        (now - self.start) % self.calculate_period
+    }
+
+    pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment::<T>) -> bool
+    {
+        match self.value.0[external_asset_id].last_changed
+        {
+            Some(last_changed) => self.get_period(now) > self.get_period(last_changed),
+            None => true,
+        }
+    }
+
+    pub fn calculate_median(&mut self, number: usize) -> SimpleResult
+    {
+        let assets: LinkedList<&T::ValueType> = self
             .sources
             .iter()
             .map(|(_, assets)| assets.0.get(number))
-            .filter(|external| external.is_some())
-            .fold(
-                (BinaryHeap::new(), BinaryHeap::new()),
-                |(mut max_heap, mut min_heap), value| {
-                    min_heap.push(Reverse(value.unwrap()));
+            .filter(|external| external.and_then(|ext| ext.value).is_some())
+            .map(|external| {
+                external
+                    .as_ref()
+                    .map(|ext| ext.value.as_ref().unwrap())
+                    .unwrap()
+            })
+            .collect();
 
-                    if let Some(val) = min_heap.pop()
-                    {
-                        max_heap.push(val.0);
-                    }
-
-                    if min_heap.len() < max_heap.len()
-                    {
-                        min_heap.push(Reverse(max_heap.pop().unwrap()));
-                    }
-                    (max_heap, min_heap)
-                },
-            );
-
-        match &mut min_heap.len().cmp(&max_heap.len())
+        if assets.len() < self.source_calculate_count as usize
         {
-            Ordering::Greater => min_heap.pop().map(|val| {
-                let mut val = val.clone();
-                val.update_time();
-                val
-            }),
-            _ => match (min_heap.pop(), max_heap.pop())
+            return Err("Not enough sources");
+        }
+
+        let (mut min_heap, mut max_heap) = assets.into_iter().fold(
+            (BinaryHeap::new(), BinaryHeap::new()),
+            |(mut max_heap, mut min_heap), value| {
+                min_heap.push(Reverse(value));
+
+                if let Some(val) = min_heap.pop()
+                {
+                    max_heap.push(val.0);
+                }
+
+                if min_heap.len() < max_heap.len()
+                {
+                    min_heap.push(Reverse(max_heap.pop().unwrap()));
+                }
+                (max_heap, min_heap)
+            },
+        );
+
+        let new_val = match min_heap.len().cmp(&max_heap.len())
+        {
+            Ordering::Greater => min_heap.pop().map(|val| val.clone()),
+
+            Ordering::Less | Ordering::Equal => match (min_heap.pop(), max_heap.pop())
             {
-                (Some(min), Some(max)) => Some(min.average(max.0)),
+                (Some(min), Some(Reverse(max))) =>
+                {
+                    let sum = min.clone() + *max;
+                    let divider: T::ValueType = One::one();
+
+                    Some(sum / (divider + One::one()))
+                }
                 _ => None,
             },
+        };
+
+        match new_val
+        {
+            Some(value) =>
+            {
+                self.value.0[number].update(value);
+                Ok(())
+            }
+            None => Err("Error in calculating process"),
         }
     }
 }

@@ -13,7 +13,7 @@ decl_storage! {
     {
         pub Oracles get(oracles): map T::OracleId => Oracle<T>;
 
-        IdSequnce get(last_oracle_id): T::OracleId;
+        OracleIdSequnce get(next_oracle_id): T::OracleId;
     }
 }
 
@@ -26,16 +26,16 @@ decl_module! {
             origin,
             name: RawString,
             asset_id: AssetId<T>,
-            source_count: u8,
+            source_calculate_count: u8,
             aggregate: TimeInterval<T>,
-            peace: TimeInterval<T>,
+            calculate_period: TimeInterval<T>,
             assets: AssetsVec<RawString>) -> SimpleResult
         {
             let _ = ensure_signed(origin)?;
-            let table = tablescore::Module::<T>::create(asset_id, source_count, Some(name.clone()))?;
+            let table = tablescore::Module::<T>::create(asset_id, source_calculate_count, Some(name.clone()))?;
 
             Oracles::<T>::insert(Self::pop_new_oracle_id()?,
-                Oracle::new(name, table, aggregate, peace, assets),
+                Oracle::new(name, table, aggregate, calculate_period, source_calculate_count, assets),
             );
 
             Ok(())
@@ -51,16 +51,11 @@ decl_module! {
 
             let oracle = Oracles::<T>::get(oracle_id);
 
-            if values.0.len() != oracle.value.0.len()
-            {
+            if values.0.len() != oracle.value.0.len() {
                 Err("The number of assets does not match")
-            }
-            else if !oracle.sources.contains_key(&who)
-            {
+            } else if !oracle.sources.contains_key(&who) {
                 Err("Your account is not a source for the oracle.")
-            }
-            else
-            {
+            } else {
                 Oracles::<T>::mutate(oracle_id, |oracle|
                     {
                         oracle.sources.get_mut(&who).map(|assets|
@@ -78,12 +73,17 @@ decl_module! {
             number: u8,
         ) -> SimpleResult
         {
-            // ToDo Add period check
-            Oracles::<T>::mutate(oracle_id, |oracle|
-            {
-                todo!()
+            let mut result = Err("Can't find oracle.");
+
+            Oracles::<T>::mutate(oracle_id, |oracle| {
+                if oracle.is_calculate_time(number as usize, timestamp::Module::<T>::get()) {
+                    result = oracle.calculate_median(number as usize);
+                } else {
+                    result = Err("The calculation time has not come.");
+                }
             });
-            todo!()
+
+            result
         }
     }
 }
@@ -111,7 +111,7 @@ impl<T: Trait> Module<T>
     {
         let mut result = Err("Unknown error");
 
-        IdSequnce::<T>::mutate(|id| match id.checked_add(&One::one())
+        OracleIdSequnce::<T>::mutate(|id| match id.checked_add(&One::one())
         {
             Some(res) =>
             {
