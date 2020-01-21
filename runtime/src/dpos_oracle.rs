@@ -51,17 +51,21 @@ decl_module! {
 
             let oracle = Oracles::<T>::get(oracle_id);
 
-            if values.0.len() != oracle.value.0.len() {
+            if values.0.len() != oracle.value.0.len()
+            {
                 Err("The number of assets does not match")
-            } else if !oracle.sources.contains_key(&who) {
+            }
+            else if !oracle.sources.contains_key(&who)
+            {
                 Err("Your account is not a source for the oracle.")
-            } else {
-                Oracles::<T>::mutate(oracle_id, |oracle|
+            }
+            else
+            {
+                Oracles::<T>::mutate(oracle_id, |oracle| {
+                    oracle.sources.get_mut(&who).map(|assets|
                     {
-                        oracle.sources.get_mut(&who).map(|assets|
-                        {
-                            assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
-                        });
+                        assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
+                    });
                 });
                 Ok(())
             }
@@ -76,9 +80,12 @@ decl_module! {
             let mut result = Err("Can't find oracle.");
 
             Oracles::<T>::mutate(oracle_id, |oracle| {
-                if oracle.is_calculate_time(number as usize, timestamp::Module::<T>::get()) {
+                if oracle.is_calculate_time(number as usize, timestamp::Module::<T>::get())
+                {
                     result = oracle.calculate_median(number as usize);
-                } else {
+                }
+                else
+                {
                     result = Err("The calculation time has not come.");
                 }
             });
