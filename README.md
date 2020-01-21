@@ -14,8 +14,8 @@ Run script `./rustup.sh`.
 # Simple build
 cargo build
 
-# Run unit tests
-cargo test 
+# Run unit tests 
+cd runtime; cargo test 
 
 # CI test 
 # ToDo in progress
