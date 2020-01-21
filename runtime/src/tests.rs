@@ -1,5 +1,6 @@
 use crate::mock::{
-    new_test_ext, MockModule, Origin, Test, ALICE, ASSET_ID, BALANCE, BOB, CAROL, CHUCK,
+    new_test_ext, OracleModule, AssetsVec, Origin, TablescoreModule, Test, ALICE, ASSET_ID, BALANCE, BOB,
+    CAROL, CHUCK,
 };
 
 use crate::tablescore::Table;
@@ -21,10 +22,10 @@ fn create_tablescore()
 {
     new_test_ext().execute_with(|| {
         let who = Origin::signed(ALICE);
-        let id = MockModule::next_tablescore_id();
+        let id = TablescoreModule::next_tablescore_id();
 
         let table = get_test_table();
-        assert!(MockModule::create_table(
+        assert!(TablescoreModule::create_table(
             who,
             table.vote_asset,
             table.head_count,
@@ -32,7 +33,7 @@ fn create_tablescore()
         )
         .is_ok());
 
-        assert_eq!(MockModule::scores(&id), table);
+        assert_eq!(TablescoreModule::scores(&id), table);
     });
 }
 
@@ -40,10 +41,10 @@ fn create_tablescore()
 fn vote_reserve_err_tablescore()
 {
     new_test_ext().execute_with(|| {
-        let id = MockModule::next_tablescore_id();
+        let id = TablescoreModule::next_tablescore_id();
         let table = get_test_table();
 
-        assert!(MockModule::create_table(
+        assert!(TablescoreModule::create_table(
             Origin::signed(ALICE),
             table.vote_asset,
             table.head_count,
@@ -51,7 +52,7 @@ fn vote_reserve_err_tablescore()
         )
         .is_ok());
 
-        assert!(MockModule::vote(Origin::signed(ALICE), id, BALANCE + 1, 1).is_err());
+        assert!(TablescoreModule::vote(Origin::signed(ALICE), id, BALANCE + 1, 1).is_err());
     });
 }
 
@@ -59,9 +60,9 @@ fn vote_reserve_err_tablescore()
 fn vote_tablescore()
 {
     new_test_ext().execute_with(|| {
-        let id = MockModule::next_tablescore_id();
+        let id = TablescoreModule::next_tablescore_id();
         let table = get_test_table();
-        assert!(MockModule::create_table(
+        assert!(TablescoreModule::create_table(
             Origin::signed(ALICE),
             ASSET_ID,
             table.head_count,
@@ -69,20 +70,20 @@ fn vote_tablescore()
         )
         .is_ok());
 
-        assert!(MockModule::vote(Origin::signed(ALICE), id, 3u128, 1).is_ok());
-        assert!(MockModule::vote(Origin::signed(BOB), id, 2u128, 2).is_ok());
-        assert!(MockModule::vote(Origin::signed(CAROL), id, 1u128, 3).is_ok());
+        assert!(TablescoreModule::vote(Origin::signed(ALICE), id, 3u128, 1).is_ok());
+        assert!(TablescoreModule::vote(Origin::signed(BOB), id, 2u128, 2).is_ok());
+        assert!(TablescoreModule::vote(Origin::signed(CAROL), id, 1u128, 3).is_ok());
 
-        assert_eq!(MockModule::get_head(&id), vec![1, 2]);
+        assert_eq!(TablescoreModule::get_head(&id), vec![1, 2]);
 
-        assert!(MockModule::vote(Origin::signed(CAROL), id, 4u128, 3).is_ok());
+        assert!(TablescoreModule::vote(Origin::signed(CAROL), id, 4u128, 3).is_ok());
 
-        assert_eq!(MockModule::get_head(&id), vec![3, 1]);
+        assert_eq!(TablescoreModule::get_head(&id), vec![3, 1]);
     });
 }
 
 #[inline]
-fn to_raw(data: &'static str) -> Vec<u8>
+fn to_raw(data: &&'static str) -> Vec<u8>
 {
     data.to_owned().as_bytes().to_vec()
 }
@@ -91,15 +92,17 @@ fn to_raw(data: &'static str) -> Vec<u8>
 fn create_oracle()
 {
     new_test_ext().execute_with(|| {
-        let id = MockModule::next_oracle_id();
-        MockModule::create_oracle(
+        let id = OracleModule::next_oracle_id();
+        OracleModule::create_oracle(
             Origin::signed(ALICE),
-            Some("test".to_owned().as_bytes().to_vec()),
+            "test".to_owned().as_bytes().to_vec(),
             ASSET_ID,
             5,
-            100,
-            100,
-            ["one", "two", "three"].iter().map(to_raw).collect(),
+            60,
+            120,
+            AssetsVec {
+                0: ["one", "two", "three"].iter().map(to_raw).collect(),
+            },
         );
     });
 }

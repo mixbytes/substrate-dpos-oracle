@@ -1,5 +1,7 @@
 use super::*;
-use crate::tablescore::*;
+pub use crate::dpos_oracle::*;
+pub use crate::tablescore::*;
+
 pub use assets::Call as AssetsCall;
 use aura_primitives::sr25519::AuthorityId as AuraId;
 pub use balances::Call as BalancesCall;
@@ -151,7 +153,15 @@ impl tablescore::Trait for Test
     type TableId = u64;
 }
 
-pub type MockModule = Module<Test>;
+impl dpos_oracle::Trait for Test
+{
+    type Event = ();
+    type OracleId = u64;
+    type ValueType = u128;
+}
+
+pub type OracleModule = crate::dpos_oracle::Module<Test>;
+pub type TablescoreModule = crate::tablescore::Module<Test>;
 
 pub const ASSET_ID: u64 = 123;
 pub const BALANCE: Balance = 1000;

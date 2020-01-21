@@ -92,7 +92,7 @@ impl<T: Trait> Default for Table<T>
 decl_storage! {
     trait Store for Module<T: Trait> as Tablescore {
         pub Scores get(scores): map T::TableId => Table<T>;
-        TableScoreIdSequence get(next_asset_id): T::TableId;
+        TableScoreIdSequence get(next_tablescore_id): T::TableId;
     }
 }
 
@@ -158,11 +158,11 @@ impl<T: Trait> Module<T>
     {
         let id = Self::pop_new_table_id()?;
         Scores::<T>::insert(
-            id.clone(),
+            id,
             Table {
-                name: name,
-                head_count: head_count,
-                vote_asset: vote_asset,
+                name,
+                head_count,
+                vote_asset,
                 scores: BTreeSet::new(),
                 reserved: BTreeMap::new(),
             },
@@ -179,7 +179,7 @@ impl<T: Trait> Module<T>
         {
             Some(res) =>
             {
-                result = Ok(id.clone());
+                result = Ok(*id);
                 *id = res;
             }
             None =>

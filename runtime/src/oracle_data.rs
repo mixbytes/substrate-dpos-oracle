@@ -115,7 +115,7 @@ pub struct Oracle<T: Trait>
     pub name: RawString,
     pub table: TableId<T>,
 
-    start: Moment<T>, 
+    start: Moment<T>,
     calculate_period: TimeInterval<T>,
     aggregate: TimeInterval<T>,
 
@@ -168,7 +168,7 @@ impl<T: Trait> Oracle<T>
                 0: assets.0.iter().map(|_| ExternalValue::<T>::new()).collect(),
             },
             assets_name: AssetsVec {
-                0: assets.0.iter().map(|name| name.clone()).collect(),
+                0: assets.0.iter().cloned().collect(),
             },
         }
     }
@@ -187,12 +187,16 @@ impl<T: Trait> Oracle<T>
     pub fn update_accounts(&mut self, accounts: Vec<AccountId<T>>)
     {
         let mut default_external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
-        default_external_value.0.iter_mut().for_each(|val| val.clean());
+        default_external_value
+            .0
+            .iter_mut()
+            .for_each(|val| val.clean());
 
         self.sources = accounts
             .into_iter()
             .map(|account| {
-                let external_value = self.sources
+                let external_value = self
+                    .sources
                     .get(&account)
                     .unwrap_or(&default_external_value)
                     .clone();
@@ -201,12 +205,12 @@ impl<T: Trait> Oracle<T>
             .collect()
     }
 
-    pub fn get_period(&self, now: Moment::<T>) -> TimeInterval::<T>
+    pub fn get_period(&self, now: Moment<T>) -> TimeInterval<T>
     {
         (now - self.start) % self.calculate_period
     }
 
-    pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment::<T>) -> bool
+    pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment<T>) -> bool
     {
         match self.value.0[external_asset_id].last_changed
         {
@@ -255,13 +259,13 @@ impl<T: Trait> Oracle<T>
 
         let new_val = match min_heap.len().cmp(&max_heap.len())
         {
-            Ordering::Greater => min_heap.pop().map(|val| val.clone()),
+            Ordering::Greater => min_heap.pop().copied(),
 
             Ordering::Less | Ordering::Equal => match (min_heap.pop(), max_heap.pop())
             {
                 (Some(min), Some(Reverse(max))) =>
                 {
-                    let sum = min.clone() + *max;
+                    let sum = *min + *max;
                     let divider: T::ValueType = One::one();
 
                     Some(sum / (divider + One::one()))

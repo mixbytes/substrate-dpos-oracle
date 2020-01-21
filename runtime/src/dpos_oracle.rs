@@ -62,10 +62,10 @@ decl_module! {
             else
             {
                 Oracles::<T>::mutate(oracle_id, |oracle| {
-                    oracle.sources.get_mut(&who).map(|assets|
+                    if let Some(assets) = oracle.sources.get_mut(&who) 
                     {
                         assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
-                    });
+                    }
                 });
                 Ok(())
             }
@@ -123,7 +123,7 @@ impl<T: Trait> Module<T>
         {
             Some(res) =>
             {
-                result = Ok(id.clone());
+                result = Ok(*id);
                 *id = res;
             }
             None =>
