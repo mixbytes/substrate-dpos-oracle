@@ -17,11 +17,11 @@ fn get_test_table() -> Table<Test>
 }
 
 #[test]
-fn create_table()
+fn create_tablescore()
 {
     new_test_ext().execute_with(|| {
         let who = Origin::signed(ALICE);
-        let id = MockModule::next_asset_id();
+        let id = MockModule::next_tablescore_id();
 
         let table = get_test_table();
         assert!(MockModule::create_table(
@@ -37,10 +37,10 @@ fn create_table()
 }
 
 #[test]
-fn vote_reserve_err()
+fn vote_reserve_err_tablescore()
 {
     new_test_ext().execute_with(|| {
-        let id = MockModule::next_asset_id();
+        let id = MockModule::next_tablescore_id();
         let table = get_test_table();
 
         assert!(MockModule::create_table(
@@ -56,10 +56,10 @@ fn vote_reserve_err()
 }
 
 #[test]
-fn vote()
+fn vote_tablescore()
 {
     new_test_ext().execute_with(|| {
-        let id = MockModule::next_asset_id();
+        let id = MockModule::next_tablescore_id();
         let table = get_test_table();
         assert!(MockModule::create_table(
             Origin::signed(ALICE),
@@ -80,3 +80,35 @@ fn vote()
         assert_eq!(MockModule::get_head(&id), vec![3, 1]);
     });
 }
+
+#[inline]
+fn to_raw(data: &'static str) -> Vec<u8>
+{
+    data.to_owned().as_bytes().to_vec()
+}
+
+#[test]
+fn create_oracle()
+{
+    new_test_ext().execute_with(|| {
+        let id = MockModule::next_oracle_id();
+        MockModule::create_oracle(
+            Origin::signed(ALICE),
+            Some("test".to_owned().as_bytes().to_vec()),
+            ASSET_ID,
+            5,
+            100,
+            100,
+            ["one", "two", "three"].iter().map(to_raw).collect(),
+        );
+    });
+}
+
+#[test]
+fn calculate_oracle() {}
+
+#[test]
+fn recalculate_oracle() {}
+
+#[test]
+fn commit_in_oracle() {}
