@@ -93,7 +93,7 @@ fn create_oracle()
 {
     new_test_ext().execute_with(|| {
         let id = OracleModule::next_oracle_id();
-        OracleModule::create_oracle(
+        OracleModule::create(
             Origin::signed(ALICE),
             "test".to_owned().as_bytes().to_vec(),
             ASSET_ID,

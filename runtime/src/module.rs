@@ -22,12 +22,12 @@ decl_module! {
     {
         fn deposit_event() = default;
 
-        pub fn create_oracle(
+        pub fn create(
             origin,
             name: RawString,
             asset_id: AssetId<T>,
             source_calculate_count: u8,
-            aggregate: TimeInterval<T>,
+            aggregate_period: TimeInterval<T>,
             calculate_period: TimeInterval<T>,
             assets: AssetsVec<RawString>) -> SimpleResult
         {
@@ -35,7 +35,7 @@ decl_module! {
             let table = tablescore::Module::<T>::create(asset_id, source_calculate_count, Some(name.clone()))?;
 
             Oracles::<T>::insert(Self::pop_new_oracle_id()?,
-                Oracle::new(name, table, aggregate, calculate_period, source_calculate_count, assets),
+                Oracle::new(name, table, PeriodHandler::new(calculate_period, aggregate_period), source_calculate_count, assets),
             );
 
             Ok(())
@@ -51,6 +51,12 @@ decl_module! {
 
             let oracle = Oracles::<T>::get(oracle_id);
 
+            let now = timestamp::Module::<T>::get();
+
+            if oracle.period_handler.is_source_update_time(now) {
+                Self::update_accounts(oracle_id);
+            }
+
             if values.0.len() != oracle.value.0.len()
             {
                 Err("The number of assets does not match")
@@ -59,7 +65,7 @@ decl_module! {
             {
                 Err("Your account is not a source for the oracle.")
             }
-            else if !oracle.is_aggregate_time(timestamp::Module::<T>::get())
+            else if !oracle.period_handler.is_aggregate_time(now)
             {
                 Err("No data aggregation at this time.")
             }
@@ -117,9 +123,8 @@ impl<T: Trait> Module<T>
 {
     fn update_accounts(oracle_id: T::OracleId)
     {
-        let table_id = Oracles::<T>::get(oracle_id).table;
         Oracles::<T>::mutate(oracle_id, |oracle| {
-            oracle.update_accounts(tablescore::Module::<T>::get_head(&table_id))
+            oracle.update_accounts(tablescore::Module::<T>::get_head(&oracle.table))
         });
     }
 

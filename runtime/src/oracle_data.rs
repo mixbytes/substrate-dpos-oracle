@@ -118,16 +118,80 @@ impl<T: Trait> Default for ExternalValue<T>
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
+pub struct PeriodHandler<T: Trait>
+{
+    start: Moment<T>,
+    calculate_period: TimeInterval<T>,
+    aggregate_period: TimeInterval<T>,
+    last_sources_update: Moment<T>,
+}
+
+impl<T: Trait> PeriodHandler<T>
+{
+    pub fn new(
+        calculate_period: TimeInterval<T>,
+        aggregate_period: TimeInterval<T>,
+    ) -> PeriodHandler<T>
+    {
+        PeriodHandler {
+            calculate_period,
+            aggregate_period,
+            start: timestamp::Module::<T>::get(),
+            last_sources_update: Moment::<T>::default(),
+        }
+    }
+}
+
+impl<T: Trait> Default for PeriodHandler<T>
+{
+    fn default() -> PeriodHandler<T>
+    {
+        PeriodHandler {
+            start: Moment::<T>::default(),
+            calculate_period: TimeInterval::<T>::default(),
+            aggregate_period: TimeInterval::<T>::default(),
+            last_sources_update: Moment::<T>::default(),
+        }
+    }
+}
+
+impl<T: Trait> PeriodHandler<T>
+{
+    pub fn get_period(&self, now: Moment<T>) -> TimeInterval<T>
+    {
+        (now - self.start) % self.calculate_period
+    }
+
+    pub fn is_aggregate_time(&self, now: Moment<T>) -> bool
+    {
+        ((self.get_period(now) + One::one()) * self.calculate_period - now) < self.aggregate_period
+    }
+
+    pub fn is_calculate_time(&self, last_update_time: Option<Moment<T>>, now: Moment<T>) -> bool
+    {
+        match last_update_time
+        {
+            Some(last_changed) => self.get_period(now) > self.get_period(last_changed),
+            None => true,
+        }
+    }
+
+    pub fn is_source_update_time(&self, now: Moment<T>) -> bool
+    {
+        self.is_aggregate_time(now)
+            && self.get_period(self.last_sources_update) < self.get_period(now)
+    }
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub struct Oracle<T: Trait>
 {
     pub name: RawString,
     pub table: TableId<T>,
 
-    start: Moment<T>,
-    calculate_period: TimeInterval<T>,
-    aggregate_period: TimeInterval<T>,
-
     source_calculate_count: u8,
+    pub period_handler: PeriodHandler<T>,
 
     pub assets_name: AssetsVec<RawString>,
 
@@ -142,13 +206,11 @@ impl<T: Trait> Default for Oracle<T>
         Oracle {
             name: Vec::new(),
             table: TableId::<T>::default(),
-            aggregate_period: TimeInterval::<T>::default(),
-            start: Moment::<T>::default(),
-            calculate_period: TimeInterval::<T>::default(),
             source_calculate_count: u8::default(),
             sources: BTreeMap::default(),
             assets_name: AssetsVec::default(),
             value: AssetsVec::default(),
+            period_handler: PeriodHandler::default(),
         }
     }
 }
@@ -158,8 +220,7 @@ impl<T: Trait> Oracle<T>
     pub fn new(
         name: RawString,
         table: TableId<T>,
-        aggregate_period: TimeInterval<T>,
-        calculate_period: TimeInterval<T>,
+        period_handler: PeriodHandler<T>,
         source_calculate_count: u8,
         assets: AssetsVec<RawString>,
     ) -> Oracle<T>
@@ -167,10 +228,8 @@ impl<T: Trait> Oracle<T>
         Oracle {
             name,
             table,
-            aggregate_period,
-            calculate_period,
             source_calculate_count,
-            start: timestamp::Module::<T>::get(),
+            period_handler,
             sources: BTreeMap::new(),
             value: AssetsVec {
                 0: assets.0.iter().map(|_| ExternalValue::<T>::new()).collect(),
@@ -179,6 +238,12 @@ impl<T: Trait> Oracle<T>
                 0: assets.0.iter().cloned().collect(),
             },
         }
+    }
+
+    pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment<T>) -> bool
+    {
+        self.period_handler
+            .is_calculate_time(self.value.0[external_asset_id].last_changed, now)
     }
 
     pub fn get_assets_count(&self) -> usize
@@ -211,25 +276,6 @@ impl<T: Trait> Oracle<T>
                 (account, external_value)
             })
             .collect()
-    }
-
-    pub fn get_period(&self, now: Moment<T>) -> TimeInterval<T>
-    {
-        (now - self.start) % self.calculate_period
-    }
-
-    pub fn is_aggregate_time(&self, now: Moment<T>) -> bool
-    {
-        ((self.get_period(now) + One::one()) * self.calculate_period - now) < self.aggregate_period
-    }
-
-    pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment<T>) -> bool
-    {
-        match self.value.0[external_asset_id].last_changed
-        {
-            Some(last_changed) => self.get_period(now) > self.get_period(last_changed),
-            None => true,
-        }
     }
 
     pub fn calculate_median(&mut self, number: usize) -> SimpleResult
