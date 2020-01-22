@@ -9,8 +9,8 @@ use rstd::prelude::*;
 use sr_primitives::traits::One;
 use support::dispatch::Result as SimpleResult;
 
-pub use crate::module_trait::*;
 pub use crate::external_value::*;
+pub use crate::module_trait::*;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -111,6 +111,35 @@ impl<T: Trait> Default for Oracle<T>
     }
 }
 
+fn get_median<'a, I, T: Ord>(values: I) -> (Option<&'a T>, Option<&'a T>)
+where
+    I: Iterator<Item = &'a T>,
+{
+    let (mut min_heap, mut max_heap) = values.fold(
+        (BinaryHeap::new(), BinaryHeap::new()),
+        |(mut max_heap, mut min_heap), value| {
+            min_heap.push(Reverse(value));
+
+            if let Some(val) = min_heap.pop()
+            {
+                max_heap.push(val.0);
+            }
+
+            if min_heap.len() < max_heap.len()
+            {
+                min_heap.push(Reverse(max_heap.pop().unwrap()));
+            }
+            (max_heap, min_heap)
+        },
+    );
+
+    match min_heap.len().cmp(&max_heap.len())
+    {
+        Ordering::Greater => (min_heap.pop(), None),
+        Ordering::Less | Ordering::Equal => (min_heap.pop(), max_heap.pop().map(|val| val.0)),
+    }
+}
+
 impl<T: Trait> Oracle<T>
 {
     pub fn new(
@@ -194,49 +223,22 @@ impl<T: Trait> Oracle<T>
             return Err("Not enough sources");
         }
 
-        let (mut min_heap, mut max_heap) = assets.into_iter().fold(
-            (BinaryHeap::new(), BinaryHeap::new()),
-            |(mut max_heap, mut min_heap), value| {
-                min_heap.push(Reverse(value));
-
-                if let Some(val) = min_heap.pop()
-                {
-                    max_heap.push(val.0);
-                }
-
-                if min_heap.len() < max_heap.len()
-                {
-                    min_heap.push(Reverse(max_heap.pop().unwrap()));
-                }
-                (max_heap, min_heap)
-            },
-        );
-
-        let new_val = match min_heap.len().cmp(&max_heap.len())
+        match get_median(assets.into_iter())
         {
-            Ordering::Greater => min_heap.pop().copied(),
-
-            Ordering::Less | Ordering::Equal => match (min_heap.pop(), max_heap.pop())
+            (Some(value), None) =>
             {
-                (Some(min), Some(Reverse(max))) =>
-                {
-                    let sum = *min + *max;
-                    let divider: T::ValueType = One::one();
-
-                    Some(sum / (divider + One::one()))
-                }
-                _ => None,
-            },
-        };
-
-        match new_val
-        {
-            Some(value) =>
-            {
-                self.value.0[number].update(value);
+                self.value.0[number].update(value.clone());
                 Ok(())
             }
-            None => Err("Error in calculating process"),
+            (Some(left), Some(right)) =>
+            {
+                let sum = *left + *right;
+                let divider: T::ValueType = One::one();
+
+                self.value.0[number].update(sum / (divider + One::one()));
+                Ok(())
+            }
+            _ => Err("Error in calculating process"),
         }
     }
 }
