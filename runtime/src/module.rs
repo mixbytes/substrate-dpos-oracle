@@ -59,10 +59,14 @@ decl_module! {
             {
                 Err("Your account is not a source for the oracle.")
             }
+            else if !oracle.is_aggregate_time(timestamp::Module::<T>::get())
+            {
+                Err("No data aggregation at this time.")
+            }
             else
             {
                 Oracles::<T>::mutate(oracle_id, |oracle| {
-                    if let Some(assets) = oracle.sources.get_mut(&who) 
+                    if let Some(assets) = oracle.sources.get_mut(&who)
                     {
                         assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
                     }

@@ -61,9 +61,9 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-pub mod dpos_oracle;
-pub mod oracle_data;
 pub mod tablescore;
+pub mod oracle_data;
+pub mod module;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -250,7 +250,7 @@ impl tablescore::Trait for Runtime
     type TargetType = AccountId;
 }
 
-impl dpos_oracle::Trait for Runtime
+impl module::Trait for Runtime
 {
     type Event = Event;
     type OracleId = u64;
@@ -273,7 +273,7 @@ construct_runtime!(
             Sudo: sudo,
             Assets: assets::{Module, Call, Storage, Event<T>},
             Tablescore: tablescore::{Module, Call, Storage, Event<T>},
-            Oracle: dpos_oracle::{Module, Call, Storage, Event<T>},
+            Oracle: module::{Module, Call, Storage, Event<T>},
             RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
     }
 );

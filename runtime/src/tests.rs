@@ -1,6 +1,6 @@
 use crate::mock::{
-    new_test_ext, OracleModule, AssetsVec, Origin, TablescoreModule, Test, ALICE, ASSET_ID, BALANCE, BOB,
-    CAROL, CHUCK,
+    new_test_ext, AssetsVec, OracleModule, Origin, TablescoreModule, Test, ALICE, ASSET_ID,
+    BALANCE, BOB, CAROL, CHUCK,
 };
 
 use crate::tablescore::Table;
