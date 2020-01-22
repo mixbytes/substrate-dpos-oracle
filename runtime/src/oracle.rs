@@ -6,115 +6,11 @@ use rstd::cmp::{Ord, Ordering};
 use codec::{Decode, Encode};
 use rstd::collections::btree_map::BTreeMap;
 use rstd::prelude::*;
-use sr_primitives::traits::{Member, One, SimpleArithmetic};
-use support::{dispatch::Result as SimpleResult, Parameter};
+use sr_primitives::traits::One;
+use support::dispatch::Result as SimpleResult;
 
-pub use crate::tablescore;
-
-pub type Balance<T> = <T as assets::Trait>::Balance;
-pub type AssetId<T> = <T as assets::Trait>::AssetId;
-pub type AccountId<T> = <T as system::Trait>::AccountId;
-
-pub type RawString = Vec<u8>;
-
-pub trait Trait:
-    assets::Trait + timestamp::Trait + tablescore::Trait<TargetType = AccountId<Self>>
-{
-    type Event: Into<<Self as system::Trait>::Event>;
-    type OracleId: Parameter + Member + SimpleArithmetic + Default + Copy;
-
-    type ValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
-}
-
-pub type TableId<T> = <T as tablescore::Trait>::TableId;
-pub type Moment<T> = <T as timestamp::Trait>::Moment;
-pub type TimeInterval<T> = <T as timestamp::Trait>::Moment;
-
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
-pub struct AssetsVec<T>(pub Vec<T>);
-
-impl<T> Default for AssetsVec<T>
-{
-    fn default() -> AssetsVec<T>
-    {
-        AssetsVec { 0: Vec::new() }
-    }
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct ExternalValue<T: Trait>
-{
-    value: Option<T::ValueType>,
-    last_changed: Option<Moment<T>>,
-}
-
-impl<T: Trait> PartialOrd for ExternalValue<T>
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering>
-    {
-        Some(self.cmp(&other))
-    }
-}
-
-impl<T: Trait> Ord for ExternalValue<T>
-{
-    fn cmp(&self, other: &Self) -> Ordering
-    {
-        match self.value.cmp(&other.value)
-        {
-            Ordering::Equal => self.last_changed.cmp(&other.last_changed),
-            ord => ord,
-        }
-    }
-}
-
-impl<T: Trait> ExternalValue<T>
-{
-    pub fn new() -> ExternalValue<T>
-    {
-        ExternalValue {
-            value: None,
-            last_changed: None,
-        }
-    }
-
-    pub fn with_value(value: T::ValueType) -> ExternalValue<T>
-    {
-        ExternalValue {
-            value: Some(value),
-            last_changed: Some(timestamp::Module::<T>::get()),
-        }
-    }
-
-    pub fn clean(&mut self)
-    {
-        self.value = None;
-        self.last_changed = None;
-    }
-
-    pub fn update_time(&mut self)
-    {
-        self.last_changed = Some(timestamp::Module::<T>::get());
-    }
-
-    pub fn update(&mut self, new_value: T::ValueType)
-    {
-        self.value = Some(new_value);
-        self.update_time();
-    }
-}
-
-impl<T: Trait> Default for ExternalValue<T>
-{
-    fn default() -> Self
-    {
-        ExternalValue {
-            value: None,
-            last_changed: None,
-        }
-    }
-}
+pub use crate::module_trait::*;
+pub use crate::external_value::*;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]

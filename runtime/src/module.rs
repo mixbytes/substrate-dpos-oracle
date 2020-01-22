@@ -5,7 +5,7 @@ use rstd::result::Result;
 use sr_primitives::traits::{CheckedAdd, One};
 use system::ensure_signed;
 
-pub use crate::oracle_data::*;
+pub use crate::oracle::*;
 use crate::tablescore;
 
 decl_storage! {
