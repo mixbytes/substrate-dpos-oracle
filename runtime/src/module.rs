@@ -70,6 +70,10 @@ decl_module! {
                     {
                         assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
                     }
+                    else
+                    {
+                        oracle.sources.insert(who, AssetsVec { 0: values.0.into_iter().map(ExternalValue::with_value).collect() });
+                    }
                 });
                 Ok(())
             }
@@ -91,7 +95,7 @@ decl_module! {
                 }
                 else
                 {
-                    result = Err("The calculation time has not come.");
+                    result = Err("The calculation time has not come. Use old value.");
                 }
             });
 

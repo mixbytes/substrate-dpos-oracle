@@ -79,6 +79,14 @@ impl<T: Trait> ExternalValue<T>
         }
     }
 
+    pub fn with_value(value: T::ValueType) -> ExternalValue<T>
+    {
+        ExternalValue {
+            value: Some(value),
+            last_changed: Some(timestamp::Module::<T>::get()),
+        }
+    }
+
     pub fn clean(&mut self)
     {
         self.value = None;
@@ -117,7 +125,7 @@ pub struct Oracle<T: Trait>
 
     start: Moment<T>,
     calculate_period: TimeInterval<T>,
-    aggregate: TimeInterval<T>,
+    aggregate_period: TimeInterval<T>,
 
     source_calculate_count: u8,
 
@@ -134,7 +142,7 @@ impl<T: Trait> Default for Oracle<T>
         Oracle {
             name: Vec::new(),
             table: TableId::<T>::default(),
-            aggregate: TimeInterval::<T>::default(),
+            aggregate_period: TimeInterval::<T>::default(),
             start: Moment::<T>::default(),
             calculate_period: TimeInterval::<T>::default(),
             source_calculate_count: u8::default(),
@@ -150,7 +158,7 @@ impl<T: Trait> Oracle<T>
     pub fn new(
         name: RawString,
         table: TableId<T>,
-        aggregate: TimeInterval<T>,
+        aggregate_period: TimeInterval<T>,
         calculate_period: TimeInterval<T>,
         source_calculate_count: u8,
         assets: AssetsVec<RawString>,
@@ -159,7 +167,7 @@ impl<T: Trait> Oracle<T>
         Oracle {
             name,
             table,
-            aggregate,
+            aggregate_period,
             calculate_period,
             source_calculate_count,
             start: timestamp::Module::<T>::get(),
@@ -208,6 +216,11 @@ impl<T: Trait> Oracle<T>
     pub fn get_period(&self, now: Moment<T>) -> TimeInterval<T>
     {
         (now - self.start) % self.calculate_period
+    }
+
+    pub fn is_aggregate_time(&self, now: Moment<T>) -> bool
+    {
+        ((self.get_period(now) + One::one()) * self.calculate_period - now) < self.aggregate_period
     }
 
     pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment<T>) -> bool
