@@ -18,7 +18,6 @@ impl<T: Trait> PartialOrd for ExternalValue<T>
     }
 }
 
-
 impl<T: Trait> ExternalValue<T>
 {
     pub fn new() -> ExternalValue<T>
@@ -77,3 +76,4 @@ impl<T: Trait> Ord for ExternalValue<T>
         }
     }
 }
+

@@ -34,8 +34,9 @@ decl_module! {
             let _ = ensure_signed(origin)?;
             let table = tablescore::Module::<T>::create(asset_id, source_calculate_count, Some(name.clone()))?;
 
+            let period_handler = PeriodHandler::new(timestamp::Module::<T>::get(), calculate_period, aggregate_period)?;
             Oracles::<T>::insert(Self::pop_new_oracle_id()?,
-                Oracle::new(name, table, PeriodHandler::new(timestamp::Module::<T>::get(), calculate_period, aggregate_period), source_calculate_count, assets),
+                Oracle::new(name, table, period_handler, source_calculate_count, assets),
             );
 
             Ok(())
@@ -53,7 +54,7 @@ decl_module! {
 
             let now = timestamp::Module::<T>::get();
 
-            if oracle.period_handler.is_source_update_time(now) {
+            if oracle.period_handler.is_source_update_needed(now) {
                 Self::update_accounts(oracle_id);
             }
 
