@@ -115,7 +115,8 @@ decl_module! {
             origin,
             table_id: T::TableId,
             balance: Balance<T>,
-            target: T::TargetType) -> Result {
+            target: T::TargetType) -> Result
+        {
             let voter = ensure_signed(origin)?;
             let table = Scores::<T>::get(&table_id);
 
@@ -135,6 +136,13 @@ decl_module! {
             });
 
             Ok(())
+        }
+
+        pub fn unvote(
+            origin,
+            table_id: T::TableId) -> Result
+        {
+            Self::vote(origin, table_id, Zero::zero(), T::TargetType::default())
         }
     }
 }
