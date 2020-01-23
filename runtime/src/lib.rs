@@ -63,6 +63,7 @@ pub type DigestItem = generic::DigestItem<Hash>;
 
 pub mod tablescore;
 pub mod module_trait;
+pub mod period_handler;
 pub mod external_value;
 pub mod oracle;
 pub mod module;

@@ -35,7 +35,7 @@ decl_module! {
             let table = tablescore::Module::<T>::create(asset_id, source_calculate_count, Some(name.clone()))?;
 
             Oracles::<T>::insert(Self::pop_new_oracle_id()?,
-                Oracle::new(name, table, PeriodHandler::new(calculate_period, aggregate_period), source_calculate_count, assets),
+                Oracle::new(name, table, PeriodHandler::new(timestamp::Module::<T>::get(), calculate_period, aggregate_period), source_calculate_count, assets),
             );
 
             Ok(())

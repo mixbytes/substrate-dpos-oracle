@@ -18,17 +18,6 @@ impl<T: Trait> PartialOrd for ExternalValue<T>
     }
 }
 
-impl<T: Trait> Ord for ExternalValue<T>
-{
-    fn cmp(&self, other: &Self) -> Ordering
-    {
-        match self.value.cmp(&other.value)
-        {
-            Ordering::Equal => self.last_changed.cmp(&other.last_changed),
-            ord => ord,
-        }
-    }
-}
 
 impl<T: Trait> ExternalValue<T>
 {
@@ -73,6 +62,18 @@ impl<T: Trait> Default for ExternalValue<T>
         ExternalValue {
             value: None,
             last_changed: None,
+        }
+    }
+}
+
+impl<T: Trait> Ord for ExternalValue<T>
+{
+    fn cmp(&self, other: &Self) -> Ordering
+    {
+        match self.value.cmp(&other.value)
+        {
+            Ordering::Equal => self.last_changed.cmp(&other.last_changed),
+            ord => ord,
         }
     }
 }

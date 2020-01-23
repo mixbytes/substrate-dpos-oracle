@@ -11,73 +11,7 @@ use support::dispatch::Result as SimpleResult;
 
 pub use crate::external_value::*;
 pub use crate::module_trait::*;
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct PeriodHandler<T: Trait>
-{
-    start: Moment<T>,
-    calculate_period: TimeInterval<T>,
-    aggregate_period: TimeInterval<T>,
-    last_sources_update: Moment<T>,
-}
-
-impl<T: Trait> PeriodHandler<T>
-{
-    pub fn new(
-        calculate_period: TimeInterval<T>,
-        aggregate_period: TimeInterval<T>,
-    ) -> PeriodHandler<T>
-    {
-        PeriodHandler {
-            calculate_period,
-            aggregate_period,
-            start: timestamp::Module::<T>::get(),
-            last_sources_update: Moment::<T>::default(),
-        }
-    }
-}
-
-impl<T: Trait> Default for PeriodHandler<T>
-{
-    fn default() -> PeriodHandler<T>
-    {
-        PeriodHandler {
-            start: Moment::<T>::default(),
-            calculate_period: TimeInterval::<T>::default(),
-            aggregate_period: TimeInterval::<T>::default(),
-            last_sources_update: Moment::<T>::default(),
-        }
-    }
-}
-
-impl<T: Trait> PeriodHandler<T>
-{
-    pub fn get_period(&self, now: Moment<T>) -> TimeInterval<T>
-    {
-        (now - self.start) % self.calculate_period
-    }
-
-    pub fn is_aggregate_time(&self, now: Moment<T>) -> bool
-    {
-        ((self.get_period(now) + One::one()) * self.calculate_period - now) < self.aggregate_period
-    }
-
-    pub fn is_calculate_time(&self, last_update_time: Option<Moment<T>>, now: Moment<T>) -> bool
-    {
-        match last_update_time
-        {
-            Some(last_changed) => self.get_period(now) > self.get_period(last_changed),
-            None => true,
-        }
-    }
-
-    pub fn is_source_update_time(&self, now: Moment<T>) -> bool
-    {
-        self.is_aggregate_time(now)
-            && self.get_period(self.last_sources_update) < self.get_period(now)
-    }
-}
+pub use crate::period_handler::PeriodHandler;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -87,7 +21,7 @@ pub struct Oracle<T: Trait>
     pub table: TableId<T>,
 
     source_calculate_count: u8,
-    pub period_handler: PeriodHandler<T>,
+    pub period_handler: PeriodHandler<T::Moment>,
 
     pub assets_name: AssetsVec<RawString>,
 
@@ -145,7 +79,7 @@ impl<T: Trait> Oracle<T>
     pub fn new(
         name: RawString,
         table: TableId<T>,
-        period_handler: PeriodHandler<T>,
+        period_handler: PeriodHandler<T::Moment>,
         source_calculate_count: u8,
         assets: AssetsVec<RawString>,
     ) -> Oracle<T>
