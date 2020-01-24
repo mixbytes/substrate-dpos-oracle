@@ -61,6 +61,7 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
+pub mod median;
 pub mod tablescore;
 pub mod module_trait;
 pub mod period_handler;

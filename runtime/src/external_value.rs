@@ -76,4 +76,3 @@ impl<T: Trait> Ord for ExternalValue<T>
         }
     }
 }
-

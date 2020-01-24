@@ -165,6 +165,9 @@ rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.0.4" }
 
+[dev-dependencies]
+rand = "0.7.3"
+
 [features]
 default = ["std"]
 std = [
