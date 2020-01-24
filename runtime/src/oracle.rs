@@ -1,8 +1,3 @@
-extern crate alloc;
-use alloc::collections::{BinaryHeap, LinkedList};
-
-use rstd::cmp::{Ord, Ordering};
-
 use codec::{Decode, Encode};
 use rstd::collections::btree_map::BTreeMap;
 use rstd::prelude::*;
@@ -12,6 +7,8 @@ use support::dispatch::Result as SimpleResult;
 pub use crate::external_value::*;
 pub use crate::module_trait::*;
 pub use crate::period_handler::PeriodHandler;
+
+use crate::median::{get_median, Median};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -42,35 +39,6 @@ impl<T: Trait> Default for Oracle<T>
             value: AssetsVec::default(),
             period_handler: PeriodHandler::default(),
         }
-    }
-}
-
-fn get_median<'a, I, T: Ord>(values: I) -> (Option<&'a T>, Option<&'a T>)
-where
-    I: Iterator<Item = &'a T>,
-{
-    let (mut min_heap, mut max_heap) = values.fold(
-        (BinaryHeap::new(), BinaryHeap::new()),
-        |(mut max_heap, mut min_heap), value| {
-            min_heap.push(Reverse(value));
-
-            if let Some(val) = min_heap.pop()
-            {
-                max_heap.push(val.0);
-            }
-
-            if min_heap.len() < max_heap.len()
-            {
-                min_heap.push(Reverse(max_heap.pop().unwrap()));
-            }
-            (max_heap, min_heap)
-        },
-    );
-
-    match min_heap.len().cmp(&max_heap.len())
-    {
-        Ordering::Greater => (min_heap.pop(), None),
-        Ordering::Less | Ordering::Equal => (min_heap.pop(), max_heap.pop().map(|val| val.0)),
     }
 }
 
@@ -139,7 +107,7 @@ impl<T: Trait> Oracle<T>
 
     pub fn calculate_median(&mut self, number: usize) -> SimpleResult
     {
-        let assets: LinkedList<&T::ValueType> = self
+        let assets: Vec<&T::ValueType> = self
             .sources
             .iter()
             .map(|(_, assets)| assets.0.get(number))
@@ -157,14 +125,14 @@ impl<T: Trait> Oracle<T>
             return Err("Not enough sources");
         }
 
-        match get_median(assets.into_iter())
+        match get_median(assets)
         {
-            (Some(value), None) =>
+            Some(Median::Value(value)) =>
             {
                 self.value.0[number].update(value.clone());
                 Ok(())
             }
-            (Some(left), Some(right)) =>
+            Some(Median::Pair(left, right)) =>
             {
                 let sum = *left + *right;
                 let divider: T::ValueType = One::one();

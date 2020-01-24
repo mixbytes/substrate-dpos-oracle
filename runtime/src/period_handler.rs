@@ -1,5 +1,5 @@
 use codec::{Decode, Encode};
-use rstd::ops::{Add, Div, Mul, Rem, Shr, Sub};
+use rstd::ops::{Add, Div, Mul, Sub};
 use sr_primitives::traits::One;
 
 #[derive(Encode, Decode, Clone, Eq, Default, PartialEq)]
