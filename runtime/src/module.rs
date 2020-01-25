@@ -72,17 +72,11 @@ decl_module! {
             }
             else
             {
+                let mut result = Err("Can't find oracle.");
                 Oracles::<T>::mutate(oracle_id, |oracle| {
-                    if let Some(assets) = oracle.sources.get_mut(&who)
-                    {
-                        assets.0.iter_mut().zip(values.0.iter()).for_each(|(external, new_val)| external.update(*new_val));
-                    }
-                    else
-                    {
-                        oracle.sources.insert(who, AssetsVec { 0: values.0.into_iter().map(ExternalValue::with_value).collect() });
-                    }
+                    result = oracle.commit_value(&who, values, now);
                 });
-                Ok(())
+                result
             }
         }
 
@@ -95,10 +89,11 @@ decl_module! {
             let _ = ensure_signed(origin)?;
             let mut result = Err("Can't find oracle.");
 
+            let now = timestamp::Module::<T>::get();
             Oracles::<T>::mutate(oracle_id, |oracle| {
-                if oracle.is_calculate_time(number as usize, timestamp::Module::<T>::get())
+                if oracle.is_calculate_time(number as usize, now)
                 {
-                    result = oracle.calculate_median(number as usize);
+                    result = oracle.calculate_median(number as usize, now);
                 }
                 else
                 {
@@ -125,7 +120,7 @@ impl<T: Trait> Module<T>
     fn update_accounts(oracle_id: T::OracleId)
     {
         Oracles::<T>::mutate(oracle_id, |oracle| {
-            oracle.update_accounts(tablescore::Module::<T>::get_head(&oracle.table))
+            oracle.update_accounts(tablescore::Module::<T>::get_head(&oracle.table).into_iter());
         });
     }
 

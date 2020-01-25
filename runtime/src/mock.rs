@@ -169,7 +169,6 @@ pub const BALANCE: Balance = 1000;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CAROL: AccountId = 3;
-pub const CHUCK: AccountId = 4;
 
 pub fn new_test_ext() -> runtime_io::TestExternalities
 {
@@ -180,7 +179,7 @@ pub fn new_test_ext() -> runtime_io::TestExternalities
     assets::GenesisConfig::<Test> {
         assets: vec![ASSET_ID],
         initial_balance: BALANCE,
-        endowed_accounts: vec![ALICE, BOB, CAROL, CHUCK],
+        endowed_accounts: vec![ALICE, BOB, CAROL],
         next_asset_id: 0,
         spending_asset_id: ASSET_ID,
         staking_asset_id: ASSET_ID,

@@ -42,15 +42,19 @@ impl<T: Trait> ExternalValue<T>
         self.last_changed = None;
     }
 
-    pub fn update_time(&mut self)
+    pub fn update_time(&mut self, now: Moment<T>)
     {
-        self.last_changed = Some(timestamp::Module::<T>::get());
+        if let Some(last_changed) = self.last_changed
+        {
+            assert!(last_changed < now);
+        }
+        self.last_changed = Some(now);
     }
 
-    pub fn update(&mut self, new_value: T::ValueType)
+    pub fn update(&mut self, value: T::ValueType, now: Moment<T>)
     {
-        self.value = Some(new_value);
-        self.update_time();
+        self.value = Some(value);
+        self.update_time(now);
     }
 }
 

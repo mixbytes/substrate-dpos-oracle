@@ -1,6 +1,6 @@
 use crate::mock::{
     new_test_ext, AssetsVec, OracleModule, Origin, TablescoreModule, Test, ALICE, ASSET_ID,
-    BALANCE, BOB, CAROL, CHUCK,
+    BALANCE, BOB, CAROL,
 };
 
 use crate::tablescore::Table;
@@ -88,12 +88,13 @@ fn to_raw(data: &&'static str) -> Vec<u8>
     data.to_owned().as_bytes().to_vec()
 }
 
+// ToDo
 #[test]
 fn create_oracle()
 {
     new_test_ext().execute_with(|| {
         let id = OracleModule::next_oracle_id();
-        OracleModule::create(
+        let oracle = OracleModule::create(
             Origin::signed(ALICE),
             "test".to_owned().as_bytes().to_vec(),
             ASSET_ID,
@@ -104,14 +105,24 @@ fn create_oracle()
                 0: ["one", "two", "three"].iter().map(to_raw).collect(),
             },
         );
+        todo!()
     });
 }
 
 #[test]
-fn calculate_oracle() {}
+fn calculate_oracle()
+{
+    todo!()
+}
 
 #[test]
-fn recalculate_oracle() {}
+fn recalculate_oracle()
+{
+    todo!()
+}
 
 #[test]
-fn commit_in_oracle() {}
+fn commit_in_oracle()
+{
+    todo!()
+}

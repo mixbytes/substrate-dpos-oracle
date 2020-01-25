@@ -69,8 +69,10 @@ impl<T: Trait> Oracle<T>
 
     pub fn is_calculate_time(&self, external_asset_id: usize, now: Moment<T>) -> bool
     {
-        self.period_handler
-            .is_calculate_time(self.value.0[external_asset_id].last_changed, now)
+        external_asset_id < self.get_assets_count()
+            && self
+                .period_handler
+                .is_calculate_time(self.value.0[external_asset_id].last_changed, now)
     }
 
     pub fn get_assets_count(&self) -> usize
@@ -84,7 +86,9 @@ impl<T: Trait> Oracle<T>
         self.value.0.push(ExternalValue::new());
     }
 
-    pub fn update_accounts(&mut self, accounts: Vec<AccountId<T>>)
+    pub fn update_accounts<I>(&mut self, accounts: I)
+    where
+        I: Iterator<Item = AccountId<T>>,
     {
         let mut default_external_value: AssetsVec<ExternalValue<T>> = self.value.clone();
         default_external_value
@@ -93,7 +97,6 @@ impl<T: Trait> Oracle<T>
             .for_each(|val| val.clean());
 
         self.sources = accounts
-            .into_iter()
             .map(|account| {
                 let external_value = self
                     .sources
@@ -105,7 +108,29 @@ impl<T: Trait> Oracle<T>
             .collect()
     }
 
-    pub fn calculate_median(&mut self, number: usize) -> SimpleResult
+    pub fn commit_value(
+        &mut self,
+        account: &AccountId<T>,
+        values: AssetsVec<T::ValueType>,
+        now: Moment<T>,
+    ) -> SimpleResult
+    {
+        if let Some(assets) = self.sources.get_mut(account)
+        {
+            assets
+                .0
+                .iter_mut()
+                .zip(values.0.iter())
+                .for_each(|(external, new_val)| external.update(*new_val, now));
+            Ok(())
+        }
+        else
+        {
+            Err("Can't find account in accepted")
+        }
+    }
+
+    pub fn calculate_median(&mut self, number: usize, now: Moment<T>) -> SimpleResult
     {
         let assets: Vec<&T::ValueType> = self
             .sources
@@ -129,7 +154,7 @@ impl<T: Trait> Oracle<T>
         {
             Some(Median::Value(value)) =>
             {
-                self.value.0[number].update(value.clone());
+                self.value.0[number].update(value.clone(), now);
                 Ok(())
             }
             Some(Median::Pair(left, right)) =>
@@ -137,10 +162,77 @@ impl<T: Trait> Oracle<T>
                 let sum = *left + *right;
                 let divider: T::ValueType = One::one();
 
-                self.value.0[number].update(sum / (divider + One::one()));
+                self.value.0[number].update(sum / (divider + One::one()), now);
                 Ok(())
             }
             _ => Err("Error in calculating process"),
         }
     }
+}
+
+#[cfg(test)]
+mod tests
+{
+    use crate::mock::Test;
+
+    type Oracle = super::Oracle<Test>;
+    use super::{AssetsVec, PeriodHandler};
+
+    fn get_period_handler() -> PeriodHandler<crate::module_trait::Moment<Test>>
+    {
+        super::PeriodHandler::new(100, 10, 5).unwrap()
+    }
+
+    fn get_assets_vec<Item, It>(iter: It) -> super::AssetsVec<Item>
+    where
+        It: Iterator<Item = Item>,
+    {
+        AssetsVec { 0: iter.collect() }
+    }
+
+    fn get_oracle() -> Oracle
+    {
+        Oracle::new(
+            "test".to_owned().as_bytes().to_vec(),
+            0,
+            get_period_handler(),
+            10,
+            get_assets_vec(
+                vec!["f", "s", "t"]
+                    .iter()
+                    .map(|s| s.to_owned().as_bytes().to_vec()),
+            ),
+        )
+    }
+
+    #[test]
+    fn create_oracle()
+    {
+        let oracle = get_oracle();
+        assert_eq!(oracle.value.0.len(), 3);
+        assert!(oracle
+            .value
+            .0
+            .iter()
+            .all(|ex_val| ex_val.value.is_none() && ex_val.last_changed.is_none()));
+    }
+
+    #[test]
+    fn update_accounts()
+    {
+        let mut oracle = get_oracle();
+        oracle.update_accounts(1..=10);
+        for account in 1..=10u64
+        {
+            oracle
+                .commit_value(&account, AssetsVec { 0: vec![1, 2, 3] }, 100)
+                .expect(&format!("Can't commit for {}.", account).to_string());
+        }
+    }
+
+    #[test]
+    fn add_asset() {}
+
+    #[test]
+    fn calculate_median() {}
 }
