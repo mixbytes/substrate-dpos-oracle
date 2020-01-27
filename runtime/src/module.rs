@@ -86,14 +86,14 @@ decl_module! {
             number: u8,
         ) -> SimpleResult
         {
-            let _ = ensure_signed(origin)?;
+            ensure_signed(origin)?;
             let mut result = Err("Can't find oracle.");
 
             let now = timestamp::Module::<T>::get();
             Oracles::<T>::mutate(oracle_id, |oracle| {
                 if oracle.is_calculate_time(number as usize, now)
                 {
-                    result = oracle.calculate_median(number as usize, now);
+                    result = oracle.calculate_median(number as usize, now).map(|_val| ());
                 }
                 else
                 {

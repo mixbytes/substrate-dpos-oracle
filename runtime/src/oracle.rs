@@ -130,7 +130,11 @@ impl<T: Trait> Oracle<T>
         }
     }
 
-    pub fn calculate_median(&mut self, number: usize, now: Moment<T>) -> SimpleResult
+    pub fn calculate_median(
+        &mut self,
+        number: usize,
+        now: Moment<T>,
+    ) -> Result<T::ValueType, &'static str>
     {
         let assets: Vec<&T::ValueType> = self
             .sources
@@ -150,12 +154,12 @@ impl<T: Trait> Oracle<T>
             return Err("Not enough sources");
         }
 
-        match get_median(assets)
+        let median = match get_median(assets)
         {
             Some(Median::Value(value)) =>
             {
                 self.value.0[number].update(value.clone(), now);
-                Ok(())
+                self.value.0[number].value
             }
             Some(Median::Pair(left, right)) =>
             {
@@ -163,10 +167,12 @@ impl<T: Trait> Oracle<T>
                 let divider: T::ValueType = One::one();
 
                 self.value.0[number].update(sum / (divider + One::one()), now);
-                Ok(())
+                self.value.0[number].value
             }
-            _ => Err("Error in calculating process"),
-        }
+            _ => None,
+        };
+
+        median.map_or(Err("Can't calculate median"), |med| Ok(med))
     }
 }
 
@@ -228,11 +234,9 @@ mod tests
                 .commit_value(&account, AssetsVec { 0: vec![1, 2, 3] }, 100)
                 .expect(&format!("Can't commit for {}.", account).to_string());
         }
+
+        assert_eq!(oracle.calculate_median(0, 101).unwrap(), 1);
+        assert_eq!(oracle.calculate_median(1, 101).unwrap(), 2);
+        assert_eq!(oracle.calculate_median(2, 101).unwrap(), 3);
     }
-
-    #[test]
-    fn add_asset() {}
-
-    #[test]
-    fn calculate_median() {}
 }
