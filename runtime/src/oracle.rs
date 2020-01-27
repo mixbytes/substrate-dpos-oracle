@@ -136,6 +136,16 @@ impl<T: Trait> Oracle<T>
         now: Moment<T>,
     ) -> Result<T::ValueType, &'static str>
     {
+        if number < self.get_assets_count()
+        {
+            return Err("Wrong asset id");
+        }
+
+        if self.sources.len() < self.source_calculate_count as usize
+        {
+            return Err("Not enough sources for calculating.");
+        }
+
         let assets: Vec<&T::ValueType> = self
             .sources
             .iter()
@@ -151,15 +161,14 @@ impl<T: Trait> Oracle<T>
 
         if assets.len() < self.source_calculate_count as usize
         {
-            return Err("Not enough sources");
+            return Err("Not enough commited values from sources.");
         }
 
-        let median = match get_median(assets)
+        match get_median(assets)
         {
             Some(Median::Value(value)) =>
             {
                 self.value.0[number].update(value.clone(), now);
-                self.value.0[number].value
             }
             Some(Median::Pair(left, right)) =>
             {
@@ -167,12 +176,13 @@ impl<T: Trait> Oracle<T>
                 let divider: T::ValueType = One::one();
 
                 self.value.0[number].update(sum / (divider + One::one()), now);
-                self.value.0[number].value
             }
             _ => None,
         };
 
-        median.map_or(Err("Can't calculate median"), |med| Ok(med))
+        self.value.0[number]
+            .value
+            .map_or(Err("Can't calculate median"), |med| Ok(med))
     }
 }
 
@@ -211,6 +221,16 @@ mod tests
         )
     }
 
+    fn update_values(oracle: &mut Oracle, values: Vec<Vec<u64>>)
+    {
+        for (account, value) in oracle.sources.keys().zip(values.into_iter())
+        {
+            oracle
+                .commit_value(&account, AssetsVec { 0: value })
+                .expect(&format!("Can't commit for {}.", account).to_string());
+        }
+    }
+
     #[test]
     fn create_oracle()
     {
@@ -224,17 +244,15 @@ mod tests
     }
 
     #[test]
-    fn calculate_error()
+    fn calculate_error_with_sources()
     {
         let mut oracle = get_oracle();
         assert_eq!(oracle.value.0.len(), 3);
         oracle.update_accounts(1..=3);
-        for account in 1..=3u64
-        {
-            oracle
-                .commit_value(&account, AssetsVec { 0: vec![1, 2, 3] }, 100)
-                .expect(&format!("Can't commit for {}.", account).to_string());
-        }
+        update_values(
+            &mut oracle,
+            vec![vec![1, 1, 1], vec![2, 2, 2], vec![3, 3, 3]],
+        );
 
         assert!(oracle.calculate_median(0, 101).is_err());
     }
@@ -244,12 +262,10 @@ mod tests
     {
         let mut oracle = get_oracle();
         oracle.update_accounts(1..=10);
-        for account in 1..=10u64
-        {
-            oracle
-                .commit_value(&account, AssetsVec { 0: vec![1, 2, 3] }, 100)
-                .expect(&format!("Can't commit for {}.", account).to_string());
-        }
+        update_values(
+            &mut oracle,
+            vec![vec![1, 1, 1], vec![2, 2, 2], vec![3, 3, 3]],
+        );
 
         assert_eq!(oracle.calculate_median(0, 101), Ok(1));
         assert_eq!(oracle.calculate_median(1, 101), Ok(2));
@@ -260,20 +276,11 @@ mod tests
     fn calculate_median()
     {
         let mut oracle = get_oracle();
-        oracle.update_accounts(1..=11);
-        for (account, value) in (1..=11u64).zip(100..=112)
-        {
-            oracle
-                .commit_value(
-                    &account,
-                    AssetsVec {
-                        0: vec![value, 0, 0],
-                    },
-                    100,
-                )
-                .expect(&format!("Can't commit for {}.", account).to_string());
-        }
-
+        oracle.update_accounts(0..=11);
+        update_values(
+            oracle,
+            vec![100..=112u64.to_vec(), vec![0; 12], vec![0; 12]],
+        );
         assert_eq!(oracle.calculate_median(0, 101), Ok(105));
     }
 }
