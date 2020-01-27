@@ -224,7 +224,23 @@ mod tests
     }
 
     #[test]
-    fn update_accounts()
+    fn calculate_error()
+    {
+        let mut oracle = get_oracle();
+        assert_eq!(oracle.value.0.len(), 3);
+        oracle.update_accounts(1..=3);
+        for account in 1..=3u64
+        {
+            oracle
+                .commit_value(&account, AssetsVec { 0: vec![1, 2, 3] }, 100)
+                .expect(&format!("Can't commit for {}.", account).to_string());
+        }
+
+        assert!(oracle.calculate_median(0, 101).is_err());
+    }
+
+    #[test]
+    fn simple_calculate_median()
     {
         let mut oracle = get_oracle();
         oracle.update_accounts(1..=10);
@@ -235,8 +251,29 @@ mod tests
                 .expect(&format!("Can't commit for {}.", account).to_string());
         }
 
-        assert_eq!(oracle.calculate_median(0, 101).unwrap(), 1);
-        assert_eq!(oracle.calculate_median(1, 101).unwrap(), 2);
-        assert_eq!(oracle.calculate_median(2, 101).unwrap(), 3);
+        assert_eq!(oracle.calculate_median(0, 101), Ok(1));
+        assert_eq!(oracle.calculate_median(1, 101), Ok(2));
+        assert_eq!(oracle.calculate_median(2, 101), Ok(3));
+    }
+
+    #[test]
+    fn calculate_median()
+    {
+        let mut oracle = get_oracle();
+        oracle.update_accounts(1..=11);
+        for (account, value) in (1..=11u64).zip(100..=112)
+        {
+            oracle
+                .commit_value(
+                    &account,
+                    AssetsVec {
+                        0: vec![value, 0, 0],
+                    },
+                    100,
+                )
+                .expect(&format!("Can't commit for {}.", account).to_string());
+        }
+
+        assert_eq!(oracle.calculate_median(0, 101), Ok(105));
     }
 }
