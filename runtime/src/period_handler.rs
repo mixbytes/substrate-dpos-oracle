@@ -74,7 +74,7 @@ impl<
         self.last_sources_update = now;
     }
 
-    pub fn is_source_update_needed(&self, now: Time) -> bool
+    pub fn is_sources_update_needed(&self, now: Time) -> bool
     {
         self.is_aggregate_time(now)
             && self.get_period(self.last_sources_update) < self.get_period(now)
@@ -117,12 +117,12 @@ mod tests
     }
 
     #[test]
-    fn is_source_update_needed()
+    fn is_sources_update_needed()
     {
         let mut handler = PeriodHandler::new(100, 10, 5).unwrap();
         handler.update_source_time(105);
 
-        (106..=114).for_each(|now| assert!(!handler.is_source_update_needed(now)));
-        assert!(handler.is_source_update_needed(115));
+        (106..=114).for_each(|now| assert!(!handler.is_sources_update_needed(now)));
+        assert!(handler.is_sources_update_needed(115));
     }
 }

@@ -1,6 +1,6 @@
 use super::*;
-pub use crate::tablescore::*;
 pub use crate::oracle::*;
+pub use crate::tablescore::*;
 
 pub use assets::Call as AssetsCall;
 use aura_primitives::sr25519::AuthorityId as AuraId;

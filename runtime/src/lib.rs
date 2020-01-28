@@ -61,13 +61,13 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-pub mod median;
-pub mod tablescore;
-pub mod module_trait;
-pub mod period_handler;
 pub mod external_value;
-pub mod oracle;
+pub mod median;
 pub mod module;
+pub mod module_trait;
+pub mod oracle;
+pub mod period_handler;
+pub mod tablescore;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats

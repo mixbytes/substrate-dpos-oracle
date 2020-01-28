@@ -54,8 +54,14 @@ decl_module! {
 
             let now = timestamp::Module::<T>::get();
 
-            if oracle.period_handler.is_source_update_needed(now) {
-                Self::update_accounts(oracle_id);
+            if oracle.period_handler.is_sources_update_needed(now)
+            {
+                let mut result = Err("Can't find oracle");
+                Oracles::<T>::mutate(oracle_id, |oracle| {
+                    result = oracle.update_accounts(tablescore::Module::<T>::get_head(&oracle.table).into_iter())
+                        .map_err(|err| err.to_str());
+                });
+                result?;
             }
 
             if values.0.len() != oracle.value.0.len()
@@ -74,7 +80,7 @@ decl_module! {
             {
                 let mut result = Err("Can't find oracle.");
                 Oracles::<T>::mutate(oracle_id, |oracle| {
-                    result = oracle.commit_value(&who, values, now);
+                    result = oracle.commit_value(&who, values, now).map_err(|err| err.to_str());
                 });
                 result
             }
@@ -93,7 +99,7 @@ decl_module! {
             Oracles::<T>::mutate(oracle_id, |oracle| {
                 if oracle.is_calculate_time(number as usize, now)
                 {
-                    result = oracle.calculate_median(number as usize, now).map(|_val| ());
+                    result = oracle.calculate_median(number as usize, now).map_err(|err| err.to_str()).map(|_val| ());
                 }
                 else
                 {
@@ -117,13 +123,6 @@ decl_event!(
 
 impl<T: Trait> Module<T>
 {
-    fn update_accounts(oracle_id: T::OracleId)
-    {
-        Oracles::<T>::mutate(oracle_id, |oracle| {
-            oracle.update_accounts(tablescore::Module::<T>::get_head(&oracle.table).into_iter());
-        });
-    }
-
     fn pop_new_oracle_id() -> Result<T::OracleId, &'static str>
     {
         let mut result = Err("Unknown error");
